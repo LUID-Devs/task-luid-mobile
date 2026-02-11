@@ -6,7 +6,7 @@
 import Foundation
 import os.log
 
-enum APIError: Error {
+enum APIError: Error, LocalizedError {
     case invalidURL
     case noData
     case decodingError(Error)
@@ -33,6 +33,10 @@ enum APIError: Error {
             return "An unknown error occurred"
         }
     }
+
+    var errorDescription: String? {
+        localizedDescription
+    }
 }
 
 enum HTTPMethod: String {
@@ -56,6 +60,10 @@ class APIClient {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = AppConfig.apiTimeout
         configuration.timeoutIntervalForResource = 60
+        configuration.httpShouldSetCookies = true
+        configuration.httpCookieAcceptPolicy = .always
+        configuration.httpCookieStorage = HTTPCookieStorage.shared
+        HTTPCookieStorage.shared.cookieAcceptPolicy = .always
 
         self.session = URLSession(configuration: configuration)
         self.baseURL = AppConfig.apiBaseURL
@@ -124,8 +132,16 @@ class APIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
+        request.httpShouldHandleCookies = true
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if let cookies = HTTPCookieStorage.shared.cookies(for: url), !cookies.isEmpty {
+            let cookieHeaders = HTTPCookie.requestHeaderFields(with: cookies)
+            for (key, value) in cookieHeaders {
+                request.setValue(value, forHTTPHeaderField: key)
+            }
+        }
 
         if requiresAuth {
             guard let token = keychainManager.getAccessToken() else {
@@ -135,6 +151,12 @@ class APIClient {
 
             if let idToken = keychainManager.getIdToken() {
                 request.setValue(idToken, forHTTPHeaderField: "X-ID-Token")
+            }
+
+            if let activeOrgId = keychainManager.getActiveOrganizationId(),
+               let parsed = Int(activeOrgId),
+               parsed > 0 {
+                request.setValue(String(parsed), forHTTPHeaderField: "X-Organization-Id")
             }
         }
 
@@ -148,6 +170,11 @@ class APIClient {
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.networkError(NSError(domain: "Invalid response", code: 0))
+            }
+
+            if urlString.contains("/tasks/user/"),
+               let raw = String(data: data, encoding: .utf8) {
+                print("🧭 Tasks response:", raw)
             }
 
             if httpResponse.statusCode == 401 {
@@ -164,6 +191,10 @@ class APIClient {
                 throw APIError.serverError("Request failed with status \(httpResponse.statusCode)")
             }
 
+            if data.isEmpty {
+                throw APIError.noData
+            }
+
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
 
@@ -171,6 +202,9 @@ class APIClient {
                 let decoded = try decoder.decode(T.self, from: data)
                 return decoded
             } catch {
+                if let raw = String(data: data, encoding: .utf8) {
+                    throw APIError.serverError("Decode failed. Status \(httpResponse.statusCode). Raw: \(raw)")
+                }
                 if let raw = String(data: data, encoding: .utf8) {
                     NSLog("❌ Decoding failed. Status: \(httpResponse.statusCode). Raw response: \(raw)")
                 } else {

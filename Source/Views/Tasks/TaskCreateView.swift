@@ -7,12 +7,14 @@ import SwiftUI
 
 struct TaskCreateView: View {
     let projectId: Int
-    let onCreate: (String, String?, TaskPriority?, TaskStatus?) -> Void
+    let onCreate: (String, String?, TaskPriority?, TaskStatus?) async -> String?
 
     @State private var title = ""
     @State private var description = ""
     @State private var priority: TaskPriority? = .medium
     @State private var status: TaskStatus? = .toDo
+    @State private var errorMessage: String? = nil
+    @State private var isSubmitting = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -38,10 +40,26 @@ struct TaskCreateView: View {
                 }
                 .pickerStyle(.menu)
 
-                LLButton("Create Task", style: .primary, fullWidth: true) {
-                    onCreate(title, description.isEmpty ? nil : description, priority, status)
-                    dismiss()
+                if let errorMessage {
+                    InlineErrorView(message: errorMessage)
                 }
+
+                LLButton("Create Task", style: .primary, isLoading: isSubmitting, fullWidth: true) {
+                    Task {
+                        isSubmitting = true
+                        errorMessage = await onCreate(
+                            title,
+                            description.isEmpty ? nil : description,
+                            priority,
+                            status
+                        )
+                        isSubmitting = false
+                        if errorMessage == nil {
+                            dismiss()
+                        }
+                    }
+                }
+                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .screenPadding()
             .navigationTitle("New Task")

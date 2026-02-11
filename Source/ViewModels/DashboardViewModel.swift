@@ -16,15 +16,21 @@ struct DashboardSummary {
 class DashboardViewModel: ObservableObject {
     @Published var summary: DashboardSummary? = nil
     @Published var recentProjects: [Project] = []
+    @Published var recentTasks: [TaskItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
+    private var lastLoadedUserId: Int? = nil
 
     private let projectService = ProjectService.shared
     private let taskService = TaskService.shared
 
     func loadDashboard(userId: Int) async {
+        if isLoading || lastLoadedUserId == userId {
+            return
+        }
         isLoading = true
         errorMessage = nil
+        lastLoadedUserId = userId
         defer { isLoading = false }
 
         if AppConfig.useMockData {
@@ -41,6 +47,7 @@ class DashboardViewModel: ObservableObject {
                 inProgressCount: inProgress
             )
             recentProjects = Array(projects.prefix(5))
+            recentTasks = Array(tasks.prefix(5))
             return
         }
 
@@ -61,6 +68,7 @@ class DashboardViewModel: ObservableObject {
                 inProgressCount: inProgress
             )
             recentProjects = Array(projects.prefix(5))
+            recentTasks = Array(tasks.prefix(5))
         } catch {
             errorMessage = error.localizedDescription
         }

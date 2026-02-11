@@ -10,7 +10,7 @@ import Foundation
 enum AppConfig {
     // MARK: - API Configuration
 
-    static let useMockData = true
+    static let useMockData = false
 
     static var apiBaseURL: String {
         #if targetEnvironment(simulator)
@@ -70,6 +70,18 @@ enum APIEndpoint {
     static func tasksByUser(_ userId: Int) -> String {
         "/tasks/user/\(userId)"
     }
+    static func taskComments(_ taskId: Int) -> String {
+        "/tasks/\(taskId)/comments"
+    }
+    static func taskAttachments(_ taskId: Int) -> String {
+        "/tasks/\(taskId)/attachments"
+    }
+    static func attachment(_ id: Int) -> String {
+        "/attachments/\(id)"
+    }
+    static func comment(_ id: Int) -> String {
+        "/comments/\(id)"
+    }
 
     // MARK: - Users
     static let users = "/users"
@@ -82,4 +94,25 @@ enum APIEndpoint {
 
     // MARK: - Search
     static let search = "/search"
+
+    // MARK: - Mission Control
+    static let agents = "/api/agents"
+    static func agent(_ id: Int) -> String {
+        "/api/agents/\(id)"
+    }
+    static func agentTasks(_ id: Int) -> String {
+        "/api/agents/\(id)/tasks"
+    }
+    static func agentNotifications(_ id: Int) -> String {
+        "/api/agents/\(id)/notifications"
+    }
+    static func taskAgentAssignments(_ taskId: Int) -> String {
+        "/api/tasks/\(taskId)/assign-agents"
+    }
+    static func taskAgentAssignment(_ taskId: Int, agentId: Int) -> String {
+        "/api/tasks/\(taskId)/assign-agents/\(agentId)"
+    }
+    static func activityFeed(_ organizationId: Int) -> String {
+        "/api/organizations/\(organizationId)/activity"
+    }
 }

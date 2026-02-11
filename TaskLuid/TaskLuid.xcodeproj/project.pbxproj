@@ -8,8 +8,25 @@
 /* Begin PBXBuildFile section */
 		FB0CFDDFDD384995BE1EB1B6 /* Models/Attachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA8CA51A41F44BFA1AECF3B /* Models/Attachment.swift */; };
 		96AABF379FCF401582A065BF /* Models/Comment.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2518133C456408EB20A78AD /* Models/Comment.swift */; };
+		18AAEB44E153409EBFE576FD /* Models/TaskAgentAssignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CEB54DBE4CA4A53B42032A3 /* Models/TaskAgentAssignment.swift */; };
+		AA9BD8B7E66B4027BD903951 /* Services/CommentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C077D05ABF84F92B413AC29 /* Services/CommentService.swift */; };
+		B08E736A43984883A4D88451 /* Services/AttachmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4366965B5954FA4AF8564CD /* Services/AttachmentService.swift */; };
 		3297CE869D2B4F6A83764F7F /* ViewModels/UsersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30EEFEC52D049A0A65A0AF6 /* ViewModels/UsersViewModel.swift */; };
 		1655FD23C33F4D7CAC0BAC0D /* Views/Teams/UsersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30576A9B17F4D52A3179963 /* Views/Teams/UsersListView.swift */; };
+		9C9C74F9DD7C4C6C98832E3A /* Views/Navigation/DrawerShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B53D64DC6FF248C5AFB34344 /* Views/Navigation/DrawerShellView.swift */; };
+		D725ACBEC19F40E5A254C0B0 /* Models/JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C46D0966A8A40508D9EB8EE /* Models/JSONValue.swift */; };
+		AE350A98D72449419860F982 /* Models/Agent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6AD8D6F94C34DD3AADA151A /* Models/Agent.swift */; };
+		9779B5D7DD8448F98684477D /* Models/AgentTaskAssignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC968716B69E4D968C668757 /* Models/AgentTaskAssignment.swift */; };
+		43E975304B9D4C6E87E48C60 /* Models/ActivityLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27EBE8D0190C408E86BBED3E /* Models/ActivityLog.swift */; };
+		A28877B3D3F24B47834F2141 /* Services/MissionControlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD01798466A54920B1624629 /* Services/MissionControlService.swift */; };
+		D30231851DE644BEA02BAA2D /* ViewModels/MissionControlViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A046A8D3D944BF7B9B0AC8F /* ViewModels/MissionControlViewModel.swift */; };
+		7901A91ADB7B4175AFCE96D1 /* ViewModels/PriorityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58087458E68B4913AA7AE42E /* ViewModels/PriorityViewModel.swift */; };
+		67F1A6940D5E4662A170827A /* ViewModels/TimelineViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DFECEF2D9AD4366870977E3 /* ViewModels/TimelineViewModel.swift */; };
+		A5371B67D2384F819700461C /* Views/MissionControl/MissionControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C13B547C4E54AA3A03F8980 /* Views/MissionControl/MissionControlView.swift */; };
+		52057770B8C547BBBCE88D12 /* Views/Priority/PriorityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9317F43293E4882B4DEFF5D /* Views/Priority/PriorityView.swift */; };
+		328BC3E43DDF4C749F22D7C5 /* Views/Timeline/TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23A1DB2C6138414BA8DFDA31 /* Views/Timeline/TimelineView.swift */; };
+		85F1B2CECCF041B894862D8A /* Views/Users/UsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A4B328732D462EBF2E3580 /* Views/Users/UsersView.swift */; };
+		A39B6AACFBEC4EC5A2697B8C /* Views/MissionControl/CreateAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22A8CDAC99A44FAB9514DC1 /* Views/MissionControl/CreateAgentView.swift */; };
 		F48EF0F6086A4E838A7B658A /* Views/Components/SectionHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46C72EC5D74D4BE8A5723034 /* Views/Components/SectionHeaderView.swift */; };
 		46694E6EBE81404EB12A3201 /* Views/Components/StatPillView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58830870F54D4F3FB82DBFC7 /* Views/Components/StatPillView.swift */; };
 		CDAE38F1FE15494487FF1585 /* Views/Components/SearchBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D43EAAFC5A4F4C199948CF99 /* Views/Components/SearchBarView.swift */; };
@@ -70,6 +87,9 @@
 /* Begin PBXFileReference section */
 		BCA8CA51A41F44BFA1AECF3B /* Models/Attachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/Attachment.swift; sourceTree = "<group>"; };
 		E2518133C456408EB20A78AD /* Models/Comment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/Comment.swift; sourceTree = "<group>"; };
+		4CEB54DBE4CA4A53B42032A3 /* Models/TaskAgentAssignment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/TaskAgentAssignment.swift; sourceTree = "<group>"; };
+		4C077D05ABF84F92B413AC29 /* Services/CommentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CommentService.swift; sourceTree = "<group>"; };
+		F4366965B5954FA4AF8564CD /* Services/AttachmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AttachmentService.swift; sourceTree = "<group>"; };
 		B30EEFEC52D049A0A65A0AF6 /* ViewModels/UsersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/UsersViewModel.swift; sourceTree = "<group>"; };
 		E30576A9B17F4D52A3179963 /* Views/Teams/UsersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Teams/UsersListView.swift; sourceTree = "<group>"; };
 		46C72EC5D74D4BE8A5723034 /* Views/Components/SectionHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Components/SectionHeaderView.swift; sourceTree = "<group>"; };
@@ -100,16 +120,24 @@
 		63CF215B525F4F4A931A750D /* Models/TaskItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/TaskItem.swift; sourceTree = "<group>"; };
 		CFD5377ECFC3421CAB346DED /* Models/Team.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/Team.swift; sourceTree = "<group>"; };
 		41B3F58FDFA6421594DD2BEA /* Models/User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/User.swift; sourceTree = "<group>"; };
+		3C46D0966A8A40508D9EB8EE /* Models/JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/JSONValue.swift; sourceTree = "<group>"; };
+		E6AD8D6F94C34DD3AADA151A /* Models/Agent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/Agent.swift; sourceTree = "<group>"; };
+		AC968716B69E4D968C668757 /* Models/AgentTaskAssignment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/AgentTaskAssignment.swift; sourceTree = "<group>"; };
+		27EBE8D0190C408E86BBED3E /* Models/ActivityLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/ActivityLog.swift; sourceTree = "<group>"; };
 		6DE447C496904BED8116DCFB /* Services/ProjectService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/ProjectService.swift; sourceTree = "<group>"; };
 		D028F900C0C34E8C80A77827 /* Services/TaskService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/TaskService.swift; sourceTree = "<group>"; };
 		68135D44E531484789709024 /* Services/TeamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/TeamService.swift; sourceTree = "<group>"; };
 		10E365B77C81409F95B34A05 /* Services/UserService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/UserService.swift; sourceTree = "<group>"; };
+		FD01798466A54920B1624629 /* Services/MissionControlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/MissionControlService.swift; sourceTree = "<group>"; };
 		F684B050B316448DA5218D51 /* TaskLuidApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLuidApp.swift; sourceTree = "<group>"; };
 		2CCBED7C5B914272993072D7 /* ViewModels/AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/AuthViewModel.swift; sourceTree = "<group>"; };
 		317168E45CBB46E5A2F040B4 /* ViewModels/DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/DashboardViewModel.swift; sourceTree = "<group>"; };
 		377B301FE18B46AEB426F1E1 /* ViewModels/ProjectsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/ProjectsViewModel.swift; sourceTree = "<group>"; };
 		EB135FA311E8479780EBDE72 /* ViewModels/TasksViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/TasksViewModel.swift; sourceTree = "<group>"; };
 		07800394695C49F89917974A /* ViewModels/TeamsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/TeamsViewModel.swift; sourceTree = "<group>"; };
+		3A046A8D3D944BF7B9B0AC8F /* ViewModels/MissionControlViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/MissionControlViewModel.swift; sourceTree = "<group>"; };
+		58087458E68B4913AA7AE42E /* ViewModels/PriorityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/PriorityViewModel.swift; sourceTree = "<group>"; };
+		4DFECEF2D9AD4366870977E3 /* ViewModels/TimelineViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/TimelineViewModel.swift; sourceTree = "<group>"; };
 		4BE35D2C837146D4B041DF75 /* Views/Auth/AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/AuthenticationView.swift; sourceTree = "<group>"; };
 		BDCDF29A647C45839C8381D4 /* Views/Auth/ChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/ChallengeView.swift; sourceTree = "<group>"; };
 		C5F9B3A5A9C94E87830B6213 /* Views/Auth/ConfirmSignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/ConfirmSignUpView.swift; sourceTree = "<group>"; };
@@ -119,6 +147,7 @@
 		5360403C254A4A30A4D9F253 /* Views/Dashboard/DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Dashboard/DashboardView.swift; sourceTree = "<group>"; };
 		3824E4CCB9494979BE692663 /* Views/Navigation/RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Navigation/RootView.swift; sourceTree = "<group>"; };
 		1D477AC6E97B48C2A7DD1824 /* Views/Navigation/TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Navigation/TabBarView.swift; sourceTree = "<group>"; };
+		B53D64DC6FF248C5AFB34344 /* Views/Navigation/DrawerShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Navigation/DrawerShellView.swift; sourceTree = "<group>"; };
 		A81E548F23FE40BE88E9C0CC /* Views/Projects/ProjectCreateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Projects/ProjectCreateView.swift; sourceTree = "<group>"; };
 		E0EE040CB21C423DA077831C /* Views/Projects/ProjectDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Projects/ProjectDetailView.swift; sourceTree = "<group>"; };
 		854660F9BD2C4D7BBD31B706 /* Views/Projects/ProjectRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Projects/ProjectRowView.swift; sourceTree = "<group>"; };
@@ -129,6 +158,11 @@
 		F3B0EDDA2F9441CE9081E8B1 /* Views/Tasks/TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Tasks/TaskRowView.swift; sourceTree = "<group>"; };
 		0F90276525D04BD4846CC956 /* Views/Tasks/TasksListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Tasks/TasksListView.swift; sourceTree = "<group>"; };
 		9D3394AE9F124A759A23E839 /* Views/Teams/TeamsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Teams/TeamsView.swift; sourceTree = "<group>"; };
+		2C13B547C4E54AA3A03F8980 /* Views/MissionControl/MissionControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/MissionControl/MissionControlView.swift; sourceTree = "<group>"; };
+		F9317F43293E4882B4DEFF5D /* Views/Priority/PriorityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Priority/PriorityView.swift; sourceTree = "<group>"; };
+		23A1DB2C6138414BA8DFDA31 /* Views/Timeline/TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Timeline/TimelineView.swift; sourceTree = "<group>"; };
+		42A4B328732D462EBF2E3580 /* Views/Users/UsersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Users/UsersView.swift; sourceTree = "<group>"; };
+		A22A8CDAC99A44FAB9514DC1 /* Views/MissionControl/CreateAgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/MissionControl/CreateAgentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,16 +227,27 @@
 				63CF215B525F4F4A931A750D /* Models/TaskItem.swift */,
 				CFD5377ECFC3421CAB346DED /* Models/Team.swift */,
 				41B3F58FDFA6421594DD2BEA /* Models/User.swift */,
+				3C46D0966A8A40508D9EB8EE /* Models/JSONValue.swift */,
+				E6AD8D6F94C34DD3AADA151A /* Models/Agent.swift */,
+				AC968716B69E4D968C668757 /* Models/AgentTaskAssignment.swift */,
+				27EBE8D0190C408E86BBED3E /* Models/ActivityLog.swift */,
+				4CEB54DBE4CA4A53B42032A3 /* Models/TaskAgentAssignment.swift */,
 				6DE447C496904BED8116DCFB /* Services/ProjectService.swift */,
 				D028F900C0C34E8C80A77827 /* Services/TaskService.swift */,
 				68135D44E531484789709024 /* Services/TeamService.swift */,
 				10E365B77C81409F95B34A05 /* Services/UserService.swift */,
+				FD01798466A54920B1624629 /* Services/MissionControlService.swift */,
+				4C077D05ABF84F92B413AC29 /* Services/CommentService.swift */,
+				F4366965B5954FA4AF8564CD /* Services/AttachmentService.swift */,
 				F684B050B316448DA5218D51 /* TaskLuidApp.swift */,
 				2CCBED7C5B914272993072D7 /* ViewModels/AuthViewModel.swift */,
 				317168E45CBB46E5A2F040B4 /* ViewModels/DashboardViewModel.swift */,
 				377B301FE18B46AEB426F1E1 /* ViewModels/ProjectsViewModel.swift */,
 				EB135FA311E8479780EBDE72 /* ViewModels/TasksViewModel.swift */,
 				07800394695C49F89917974A /* ViewModels/TeamsViewModel.swift */,
+				3A046A8D3D944BF7B9B0AC8F /* ViewModels/MissionControlViewModel.swift */,
+				58087458E68B4913AA7AE42E /* ViewModels/PriorityViewModel.swift */,
+				4DFECEF2D9AD4366870977E3 /* ViewModels/TimelineViewModel.swift */,
 				4BE35D2C837146D4B041DF75 /* Views/Auth/AuthenticationView.swift */,
 				BDCDF29A647C45839C8381D4 /* Views/Auth/ChallengeView.swift */,
 				C5F9B3A5A9C94E87830B6213 /* Views/Auth/ConfirmSignUpView.swift */,
@@ -212,6 +257,7 @@
 				5360403C254A4A30A4D9F253 /* Views/Dashboard/DashboardView.swift */,
 				3824E4CCB9494979BE692663 /* Views/Navigation/RootView.swift */,
 				1D477AC6E97B48C2A7DD1824 /* Views/Navigation/TabBarView.swift */,
+				B53D64DC6FF248C5AFB34344 /* Views/Navigation/DrawerShellView.swift */,
 				A81E548F23FE40BE88E9C0CC /* Views/Projects/ProjectCreateView.swift */,
 				E0EE040CB21C423DA077831C /* Views/Projects/ProjectDetailView.swift */,
 				854660F9BD2C4D7BBD31B706 /* Views/Projects/ProjectRowView.swift */,
@@ -222,12 +268,20 @@
 				F3B0EDDA2F9441CE9081E8B1 /* Views/Tasks/TaskRowView.swift */,
 				0F90276525D04BD4846CC956 /* Views/Tasks/TasksListView.swift */,
 				9D3394AE9F124A759A23E839 /* Views/Teams/TeamsView.swift */,
+				2C13B547C4E54AA3A03F8980 /* Views/MissionControl/MissionControlView.swift */,
+				A22A8CDAC99A44FAB9514DC1 /* Views/MissionControl/CreateAgentView.swift */,
+				F9317F43293E4882B4DEFF5D /* Views/Priority/PriorityView.swift */,
+				23A1DB2C6138414BA8DFDA31 /* Views/Timeline/TimelineView.swift */,
+				42A4B328732D462EBF2E3580 /* Views/Users/UsersView.swift */,
 			
 				46C72EC5D74D4BE8A5723034 /* Views/Components/SectionHeaderView.swift */,
 				58830870F54D4F3FB82DBFC7 /* Views/Components/StatPillView.swift */,
 				D43EAAFC5A4F4C199948CF99 /* Views/Components/SearchBarView.swift */,
 				BCA8CA51A41F44BFA1AECF3B /* Models/Attachment.swift */,
 				E2518133C456408EB20A78AD /* Models/Comment.swift */,
+				4CEB54DBE4CA4A53B42032A3 /* Models/TaskAgentAssignment.swift */,
+				4C077D05ABF84F92B413AC29 /* Services/CommentService.swift */,
+				F4366965B5954FA4AF8564CD /* Services/AttachmentService.swift */,
 				B30EEFEC52D049A0A65A0AF6 /* ViewModels/UsersViewModel.swift */,
 				E30576A9B17F4D52A3179963 /* Views/Teams/UsersListView.swift */,);
 			name = Source;
@@ -365,8 +419,25 @@
 				F48EF0F6086A4E838A7B658A /* Views/Components/SectionHeaderView.swift in Sources */,
 				46694E6EBE81404EB12A3201 /* Views/Components/StatPillView.swift in Sources */,
 				CDAE38F1FE15494487FF1585 /* Views/Components/SearchBarView.swift in Sources */,
+				9C9C74F9DD7C4C6C98832E3A /* Views/Navigation/DrawerShellView.swift in Sources */,
+				D725ACBEC19F40E5A254C0B0 /* Models/JSONValue.swift in Sources */,
+				AE350A98D72449419860F982 /* Models/Agent.swift in Sources */,
+				9779B5D7DD8448F98684477D /* Models/AgentTaskAssignment.swift in Sources */,
+				43E975304B9D4C6E87E48C60 /* Models/ActivityLog.swift in Sources */,
+				A28877B3D3F24B47834F2141 /* Services/MissionControlService.swift in Sources */,
+				D30231851DE644BEA02BAA2D /* ViewModels/MissionControlViewModel.swift in Sources */,
+				7901A91ADB7B4175AFCE96D1 /* ViewModels/PriorityViewModel.swift in Sources */,
+				67F1A6940D5E4662A170827A /* ViewModels/TimelineViewModel.swift in Sources */,
+				A5371B67D2384F819700461C /* Views/MissionControl/MissionControlView.swift in Sources */,
+				A39B6AACFBEC4EC5A2697B8C /* Views/MissionControl/CreateAgentView.swift in Sources */,
+				52057770B8C547BBBCE88D12 /* Views/Priority/PriorityView.swift in Sources */,
+				328BC3E43DDF4C749F22D7C5 /* Views/Timeline/TimelineView.swift in Sources */,
+				85F1B2CECCF041B894862D8A /* Views/Users/UsersView.swift in Sources */,
 				FB0CFDDFDD384995BE1EB1B6 /* Models/Attachment.swift in Sources */,
 				96AABF379FCF401582A065BF /* Models/Comment.swift in Sources */,
+				18AAEB44E153409EBFE576FD /* Models/TaskAgentAssignment.swift in Sources */,
+				AA9BD8B7E66B4027BD903951 /* Services/CommentService.swift in Sources */,
+				B08E736A43984883A4D88451 /* Services/AttachmentService.swift in Sources */,
 				3297CE869D2B4F6A83764F7F /* ViewModels/UsersViewModel.swift in Sources */,
 				1655FD23C33F4D7CAC0BAC0D /* Views/Teams/UsersListView.swift in Sources */,);
 			runOnlyForDeploymentPostprocessing = 0;

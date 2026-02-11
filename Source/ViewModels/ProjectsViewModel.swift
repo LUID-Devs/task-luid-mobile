@@ -12,19 +12,25 @@ class ProjectsViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
 
     private let projectService = ProjectService.shared
+    private var hasLoadedOnce = false
 
     func loadProjects() async {
+        if isLoading || hasLoadedOnce {
+            return
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         if AppConfig.useMockData {
             projects = MockData.projects
+            hasLoadedOnce = true
             return
         }
 
         do {
             projects = try await projectService.getProjects()
+            hasLoadedOnce = true
         } catch {
             errorMessage = error.localizedDescription
         }

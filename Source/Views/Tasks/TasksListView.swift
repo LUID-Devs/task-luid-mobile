@@ -11,44 +11,66 @@ struct TasksListView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var searchText = ""
     @State private var selectedFilter = "Assigned"
+    @State private var hasLoaded = false
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.isLoading {
-                    LLLoadingView("Loading tasks...")
-                } else if viewModel.tasks.isEmpty {
+        Group {
+            if viewModel.isLoading {
+                LLLoadingView("Loading tasks...")
+            } else if viewModel.tasks.isEmpty {
+                VStack(spacing: LLSpacing.sm) {
+                    if let debug = viewModel.debugResponse {
+                        LLBadge(debug, variant: .outline, size: .sm)
+                    }
                     LLEmptyState(
                         icon: "checklist",
                         title: "No tasks",
                         message: "Tasks assigned to you will show up here."
                     )
-                } else {
-                    ScrollView {
-                        VStack(spacing: LLSpacing.md) {
-                            SectionHeaderView("My tasks", subtitle: "Focus on what needs attention.")
-                            SearchBarView(placeholder: "Search tasks", text: $searchText)
-                            filterChips
-                            ForEach(viewModel.tasks) { task in
-                                NavigationLink {
-                                    TaskDetailView(task: task)
-                                } label: {
-                                    TaskRowView(task: task)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
+                }
+            } else {
+                ScrollView {
+                    VStack(spacing: LLSpacing.md) {
+                        headerRow
+                        if let debug = viewModel.debugResponse {
+                            LLBadge(debug, variant: .outline, size: .sm)
                         }
-                        .screenPadding()
+                        SearchBarView(placeholder: "Search tasks", text: $searchText)
+                        filterChips
+                        ForEach(viewModel.tasks) { task in
+                            NavigationLink {
+                                TaskDetailView(task: task)
+                            } label: {
+                                TaskRowView(task: task)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
-                    .background(LLColors.background.color(for: colorScheme))
+                    .screenPadding()
                 }
+                .background(LLColors.background.color(for: colorScheme))
             }
-            .navigationTitle("My Tasks")
-            .task {
-                if let userId = authViewModel.user?.userId {
-                    await viewModel.loadTasksByUser(userId: userId)
-                }
+        }
+        .onAppear {
+            if hasLoaded {
+                return
             }
+            if let userId = authViewModel.user?.userId {
+                hasLoaded = true
+                Task { await viewModel.loadTasksByUser(userId: userId) }
+            }
+        }
+        .onChange(of: authViewModel.user?.userId) { newValue in
+            guard let userId = newValue, !hasLoaded else { return }
+            hasLoaded = true
+            Task { await viewModel.loadTasksByUser(userId: userId) }
+        }
+    }
+
+    private var headerRow: some View {
+        HStack(alignment: .firstTextBaseline) {
+            SectionHeaderView("My tasks", subtitle: "Focus on what needs attention.")
+            Spacer()
         }
     }
 

@@ -12,6 +12,7 @@ struct ProjectDetailView: View {
     @State private var showCreateTask = false
     @State private var statuses: [ProjectStatus] = []
     @State private var isLoadingStatuses = false
+    @State private var selectedView = "List"
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -32,14 +33,23 @@ struct ProjectDetailView: View {
                     VStack(spacing: LLSpacing.md) {
                         projectHeader
                         statusColumns
+                        viewToggle
                         actionBar
-                        ForEach(tasksViewModel.tasks) { task in
-                            NavigationLink {
-                                TaskDetailView(task: task)
-                            } label: {
-                                TaskRowView(task: task)
+                        if selectedView == "List" {
+                            ForEach(tasksViewModel.tasks) { task in
+                                NavigationLink {
+                                    TaskDetailView(task: task)
+                                } label: {
+                                    TaskRowView(task: task)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
+                        } else {
+                            LLEmptyState(
+                                icon: "square.grid.2x2",
+                                title: "\(selectedView) view",
+                                message: "This view is coming soon."
+                            )
                         }
                     }
                     .screenPadding()
@@ -57,15 +67,17 @@ struct ProjectDetailView: View {
         }
         .sheet(isPresented: $showCreateTask) {
             TaskCreateView(projectId: project.id) { title, description, priority, status in
-                Task {
-                    _ = await tasksViewModel.createTask(
-                        title: title,
-                        description: description,
-                        projectId: project.id,
-                        priority: priority,
-                        status: status
-                    )
+                let task = await tasksViewModel.createTask(
+                    title: title,
+                    description: description,
+                    projectId: project.id,
+                    priority: priority,
+                    status: status
+                )
+                if task == nil {
+                    return tasksViewModel.errorMessage ?? "Failed to create task."
                 }
+                return nil
             }
         }
         .task {
@@ -77,8 +89,15 @@ struct ProjectDetailView: View {
     private var projectHeader: some View {
         LLCard(style: .standard) {
             VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                Text(project.name)
-                    .h3()
+                HStack {
+                    Text(project.name)
+                        .h3()
+                    Spacer()
+                    if project.isFavorited == true {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(LLColors.foreground.color(for: colorScheme))
+                    }
+                }
                 if let description = project.description, !description.isEmpty {
                     Text(description)
                         .bodySmall()
@@ -86,6 +105,9 @@ struct ProjectDetailView: View {
                 }
                 HStack(spacing: LLSpacing.sm) {
                     LLBadge("Tasks: \(tasksViewModel.tasks.count)", variant: .outline, size: .sm)
+                    if let stats = project.statistics {
+                        LLBadge("\(Int(stats.progress * 100))% complete", variant: .outline, size: .sm)
+                    }
                     if project.archived == true {
                         LLBadge("Archived", variant: .warning, size: .sm)
                     }
@@ -146,6 +168,15 @@ struct ProjectDetailView: View {
                 }
             }
         }
+    }
+
+    private var viewToggle: some View {
+        Picker("View", selection: $selectedView) {
+            Text("List").tag("List")
+            Text("Board").tag("Board")
+            Text("Timeline").tag("Timeline")
+        }
+        .pickerStyle(SegmentedPickerStyle())
     }
 
     private var actionBar: some View {

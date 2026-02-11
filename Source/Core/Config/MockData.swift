@@ -86,7 +86,7 @@ enum MockData {
                 Comment(id: 1, text: "Spacing looks better with 24pt padding.", imageUrl: nil, taskId: 201, userId: 2, createdAt: "", updatedAt: "", user: CommentUser(userId: 2, username: "jasmine", email: "jasmine@example.com", profilePictureUrl: nil))
             ],
             attachments: [
-                Attachment(id: 1, fileURL: "https://example.com/mock.pdf", fileName: "layout-specs.pdf", taskId: 201, uploadedById: 1, uploadedBy: AttachmentUser(userId: 1, username: "test", email: "test@example.com"))
+                Attachment(id: 1, fileURL: "https://example.com/mock.pdf", fileName: "layout-specs.pdf", presignedUrl: nil, taskId: 201, uploadedById: 1, uploadedBy: AttachmentUser(userId: 1, username: "test", email: "test@example.com"))
             ]
         ),
         TaskItem(
@@ -112,7 +112,21 @@ enum MockData {
     ]
 
     static let teams: [Team] = [
-        Team(teamId: 1, teamName: "Product", productOwnerUserId: 1, projectManagerUserId: 3),
-        Team(teamId: 2, teamName: "Design", productOwnerUserId: 2, projectManagerUserId: 1)
+        Team(
+            teamId: 1,
+            teamName: "Product",
+            productOwnerUserId: 1,
+            projectManagerUserId: 3,
+            productOwnerUsername: "test",
+            projectManagerUsername: "sam"
+        ),
+        Team(
+            teamId: 2,
+            teamName: "Design",
+            productOwnerUserId: 2,
+            projectManagerUserId: 1,
+            productOwnerUsername: "jasmine",
+            projectManagerUsername: "test"
+        )
     ]
 }

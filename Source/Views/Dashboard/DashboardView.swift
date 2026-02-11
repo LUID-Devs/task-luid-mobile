@@ -11,103 +11,159 @@ struct DashboardView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if viewModel.isLoading {
-                    LLLoadingView("Loading dashboard...")
-                } else {
-                    ScrollView {
-                        VStack(spacing: LLSpacing.lg) {
-                            headerSection
-                            summarySection
-                            quickActionsSection
-                            recentProjectsSection
-                        }
-                        .screenPadding()
+        Group {
+            if viewModel.isLoading {
+                LLLoadingView("Loading dashboard...")
+            } else {
+                ScrollView {
+                    VStack(spacing: LLSpacing.lg) {
+                        headerSection
+                        welcomeCard
+                        planCard
+                        statGrid
+                        recentTasksSection
                     }
-                    .background(LLColors.background.color(for: colorScheme))
+                    .screenPadding()
                 }
+                .background(LLColors.background.color(for: colorScheme))
             }
-            .navigationTitle("Dashboard")
-            .task {
-                if let userId = authViewModel.user?.userId {
-                    await viewModel.loadDashboard(userId: userId)
-                }
+        }
+        .task(id: authViewModel.user?.userId) {
+            if let userId = authViewModel.user?.userId {
+                await viewModel.loadDashboard(userId: userId)
             }
         }
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: LLSpacing.md) {
-            SectionHeaderView("Welcome back", subtitle: "Here is your project pulse today.")
-            HStack(spacing: LLSpacing.sm) {
-                StatPillView(title: "Active projects", value: "\(viewModel.summary?.projectCount ?? 0)")
-                StatPillView(title: "Tasks", value: "\(viewModel.summary?.taskCount ?? 0)")
-            }
+        VStack(alignment: .leading, spacing: LLSpacing.xs) {
+            Text("Project Management Dashboard")
+                .h3()
+            Text("Overview of your work and recent activity.")
+                .bodySmall()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
         }
     }
 
-    private var summarySection: some View {
+    private var welcomeCard: some View {
         LLCard(style: .standard) {
             VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                Text("Overview")
+                Text("Welcome back, \(authViewModel.user?.username ?? "User")!")
                     .h4()
-
-                if let summary = viewModel.summary {
-                    HStack(spacing: LLSpacing.md) {
-                        summaryItem(title: "Projects", value: "\(summary.projectCount)")
-                        summaryItem(title: "Tasks", value: "\(summary.taskCount)")
-                        summaryItem(title: "Done", value: "\(summary.completedCount)")
-                    }
-
-                    HStack(spacing: LLSpacing.md) {
-                        summaryItem(title: "In Progress", value: "\(summary.inProgressCount)")
-                    }
-                } else {
-                    Text("No data yet.")
-                        .bodySmall()
-                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
-                }
-            }
-        }
-    }
-
-    private var recentProjectsSection: some View {
-        VStack(alignment: .leading, spacing: LLSpacing.md) {
-            Text("Recent projects")
-                .h4()
-
-            if viewModel.recentProjects.isEmpty {
-                Text("Create a project to get started.")
+                Text("Here’s your project overview and recent activity.")
                     .bodySmall()
                     .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
-            } else {
-                ForEach(viewModel.recentProjects) { project in
-                    ProjectRowView(project: project)
+            }
+        }
+    }
+
+    private var planCard: some View {
+        LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                HStack {
+                    Text("Current Plan: Free")
+                        .h4()
+                    Spacer()
+                    LLBadge("Free", variant: .outline, size: .sm)
+                }
+                Text("Limited access — upgrade for more.")
+                    .bodySmall()
+                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+
+                HStack(spacing: LLSpacing.sm) {
+                    Image(systemName: "creditcard")
+                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                    VStack(alignment: .leading, spacing: LLSpacing.xs) {
+                        Text("Credit Balance")
+                            .captionText()
+                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                        Text("0")
+                            .h4()
+                    }
+                    Spacer()
+                }
+                .padding(LLSpacing.sm)
+                .background(LLColors.muted.color(for: colorScheme))
+                .cornerRadius(12)
+
+                LLButton("Upgrade to Pro", style: .outline, size: .sm) {}
+            }
+        }
+    }
+
+    private var statGrid: some View {
+        let summary = viewModel.summary
+        let stats = [
+            ("Total Tasks", "\(summary?.taskCount ?? 0)", "checklist"),
+            ("Completed", "\(summary?.completedCount ?? 0)", "checkmark"),
+            ("In Progress", "\(summary?.inProgressCount ?? 0)", "clock"),
+            ("Projects", "\(summary?.projectCount ?? 0)", "folder")
+        ]
+
+        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: LLSpacing.md) {
+            ForEach(stats, id: \.0) { title, value, icon in
+                LLCard(style: .standard, padding: .md) {
+                    VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                        HStack {
+                            Text(title)
+                                .captionText()
+                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                            Spacer()
+                            Image(systemName: icon)
+                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                        }
+                        Text(value)
+                            .h3()
+                    }
                 }
             }
         }
     }
 
-    private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: LLSpacing.md) {
-            Text("Quick actions")
-                .h4()
-            HStack(spacing: LLSpacing.sm) {
-                LLButton("New project", style: .primary, size: .sm, fullWidth: true) {}
-                LLButton("New task", style: .outline, size: .sm, fullWidth: true) {}
+    private var recentTasksSection: some View {
+        LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                Text("Your Recent Tasks")
+                    .h4()
+                Text("Showing \(min(viewModel.recentTasks.count, 5)) of \(viewModel.summary?.taskCount ?? 0) tasks")
+                    .captionText()
+                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+
+                if viewModel.recentTasks.isEmpty {
+                    Text("No tasks yet.")
+                        .bodySmall()
+                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                } else {
+                    VStack(spacing: LLSpacing.sm) {
+                        ForEach(viewModel.recentTasks) { task in
+                            HStack(alignment: .top, spacing: LLSpacing.sm) {
+                                VStack(alignment: .leading, spacing: LLSpacing.xs) {
+                                    Text(task.title)
+                                        .bodyText()
+                                    if let description = task.description, !description.isEmpty {
+                                        Text(description)
+                                            .captionText()
+                                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: LLSpacing.xs) {
+                                    if let status = task.status {
+                                        LLBadge(status.rawValue, variant: status == .completed ? .success : .outline, size: .sm)
+                                    }
+                                    if let priority = task.priority {
+                                        LLBadge(priority.rawValue, variant: .outline, size: .sm)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, LLSpacing.xs)
+                            Divider()
+                                .background(LLColors.muted.color(for: colorScheme))
+                        }
+                    }
+                }
             }
         }
-    }
-
-    private func summaryItem(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: LLSpacing.xs) {
-            Text(title)
-                .captionText()
-                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
-            Text(value)
-                .h4()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

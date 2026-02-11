@@ -23,6 +23,7 @@ struct LoginResponse: Codable {
     let tokens: AuthTokens?
     let user: User?
     let organizations: [Organization]?
+    let activeOrganization: Organization?
     let challenge: String?
     let session: String?
     let challengeParameters: [String: String]?
@@ -105,11 +106,26 @@ class AuthService {
                 if let email = user.email {
                     _ = keychain.saveUserEmail(email)
                 }
+                if let activeOrg = response.activeOrganization?.id {
+                    _ = keychain.saveActiveOrganizationId(String(activeOrg))
+                } else {
+                    let status = try await getAuthStatus()
+                    if let activeOrg = status.activeOrganization?.id {
+                        _ = keychain.saveActiveOrganizationId(String(activeOrg))
+                    } else {
+                        _ = keychain.saveActiveOrganizationId("")
+                    }
+                }
                 return .authenticated(user)
             }
 
             let status = try await getAuthStatus()
             if let user = status.user {
+                if let activeOrg = status.activeOrganization?.id {
+                    _ = keychain.saveActiveOrganizationId(String(activeOrg))
+                } else {
+                    _ = keychain.saveActiveOrganizationId("")
+                }
                 return .authenticated(user)
             }
 

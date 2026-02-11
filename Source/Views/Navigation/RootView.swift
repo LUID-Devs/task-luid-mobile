@@ -12,7 +12,7 @@ struct RootView: View {
     var body: some View {
         ZStack {
             if authViewModel.isAuthenticated {
-                TabBarView()
+                DrawerShellView()
             } else {
                 AuthenticationView()
             }

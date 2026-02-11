@@ -17,6 +17,7 @@ class KeychainManager {
         static let refreshToken = "com.luid.taskluid.refreshToken"
         static let userId = "com.luid.taskluid.userId"
         static let userEmail = "com.luid.taskluid.userEmail"
+        static let activeOrganizationId = "com.luid.taskluid.activeOrganizationId"
     }
 
     func saveAccessToken(_ token: String) -> Bool {
@@ -59,12 +60,21 @@ class KeychainManager {
         get(forKey: Keys.userEmail)
     }
 
+    func saveActiveOrganizationId(_ organizationId: String) -> Bool {
+        save(organizationId, forKey: Keys.activeOrganizationId)
+    }
+
+    func getActiveOrganizationId() -> String? {
+        get(forKey: Keys.activeOrganizationId)
+    }
+
     func clearAll() {
         _ = delete(forKey: Keys.accessToken)
         _ = delete(forKey: Keys.idToken)
         _ = delete(forKey: Keys.refreshToken)
         _ = delete(forKey: Keys.userId)
         _ = delete(forKey: Keys.userEmail)
+        _ = delete(forKey: Keys.activeOrganizationId)
     }
 
     func hasAccessToken() -> Bool {

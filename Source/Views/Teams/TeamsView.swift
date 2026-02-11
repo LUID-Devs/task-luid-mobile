@@ -11,9 +11,10 @@ struct TeamsView: View {
     @State private var selectedTab = "Teams"
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: LLSpacing.md) {
+        ScrollView {
+            VStack(spacing: LLSpacing.md) {
+                SectionHeaderView("Teams", subtitle: "Manage people and roles.")
+
                 Picker("View", selection: $selectedTab) {
                     Text("Teams").tag("Teams")
                     Text("People").tag("People")
@@ -31,23 +32,19 @@ struct TeamsView: View {
                                 message: "Teams will appear here once created."
                             )
                         } else {
-                            ScrollView {
-                                VStack(spacing: LLSpacing.md) {
-                                    ForEach(viewModel.teams) { team in
-                                        LLCard(style: .standard) {
-                                            VStack(alignment: .leading, spacing: LLSpacing.xs) {
-                                                Text(team.teamName)
-                                                    .h4()
-                                                Text("Team ID: \(team.teamId)")
-                                                    .bodySmall()
-                                                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
-                                            }
+                            VStack(spacing: LLSpacing.md) {
+                                ForEach(viewModel.teams) { team in
+                                    LLCard(style: .standard) {
+                                        VStack(alignment: .leading, spacing: LLSpacing.xs) {
+                                            Text(team.teamName)
+                                                .h4()
+                                            Text("Team ID: \(team.teamId)")
+                                                .bodySmall()
+                                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
                                         }
                                     }
                                 }
-                                .screenPadding()
                             }
-                            .background(LLColors.background.color(for: colorScheme))
                         }
                     }
                     .task {
@@ -56,11 +53,9 @@ struct TeamsView: View {
                 } else {
                     UsersListView()
                 }
-                }
-                .screenPadding()
             }
-            .background(LLColors.background.color(for: colorScheme))
-            .navigationTitle("Teams")
+            .screenPadding()
         }
+        .background(LLColors.background.color(for: colorScheme))
     }
 }

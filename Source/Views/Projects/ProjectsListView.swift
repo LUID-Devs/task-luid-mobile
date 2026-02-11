@@ -13,57 +13,69 @@ struct ProjectsListView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        NavigationStack {
-            Group {
+        Group {
                 if viewModel.isLoading {
                     LLLoadingView("Loading projects...")
                 } else if viewModel.projects.isEmpty {
-                    LLEmptyState(
-                        icon: "folder",
-                        title: "No projects",
-                        message: "Create your first project to get started.",
-                        actionTitle: "New Project"
-                    ) {
-                        showCreate = true
+                    VStack(spacing: LLSpacing.md) {
+                        if let errorMessage = viewModel.errorMessage {
+                            InlineErrorView(message: errorMessage)
+                        }
+                        LLEmptyState(
+                            icon: "folder",
+                            title: "No projects",
+                            message: "Create your first project to get started.",
+                            actionTitle: "New Project"
+                        ) {
+                            showCreate = true
+                        }
                     }
                 } else {
                     ScrollView {
                         VStack(spacing: LLSpacing.md) {
-                            SectionHeaderView("Projects", subtitle: "Track everything in one place.")
+                            headerRow
+                            if let errorMessage = viewModel.errorMessage {
+                                InlineErrorView(message: errorMessage)
+                            }
                             SearchBarView(placeholder: "Search projects", text: $searchText)
                             filterChips
                             ForEach(viewModel.projects) { project in
                                 NavigationLink {
                                     ProjectDetailView(project: project)
-                                } label: {
-                                    ProjectRowView(project: project)
-                                }
-                                .buttonStyle(PlainButtonStyle())
+                            } label: {
+                                ProjectRowView(project: project)
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .screenPadding()
                     }
-                    .background(LLColors.background.color(for: colorScheme))
+                    .screenPadding()
                 }
+                .background(LLColors.background.color(for: colorScheme))
             }
-            .navigationTitle("Projects")
-            .toolbar {
-                Button {
-                    showCreate = true
-                } label: {
-                    Image(systemName: "plus")
+        }
+        .sheet(isPresented: $showCreate) {
+            ProjectCreateView { name, description in
+                let project = await viewModel.createProject(name: name, description: description)
+                if project == nil {
+                    return viewModel.errorMessage ?? "Failed to create project."
                 }
+                return nil
             }
-            .sheet(isPresented: $showCreate) {
-                ProjectCreateView { name, description in
-                    Task {
-                        _ = await viewModel.createProject(name: name, description: description)
-                        showCreate = false
-                    }
-                }
-            }
-            .task {
-                await viewModel.loadProjects()
+        }
+        .task {
+            await viewModel.loadProjects()
+        }
+    }
+
+    private var headerRow: some View {
+        HStack(alignment: .firstTextBaseline) {
+            SectionHeaderView("Projects", subtitle: "Track everything in one place.")
+            Spacer()
+            Button {
+                showCreate = true
+            } label: {
+                Image(systemName: "plus")
+                    .foregroundColor(LLColors.foreground.color(for: colorScheme))
             }
         }
     }

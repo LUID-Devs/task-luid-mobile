@@ -10,43 +10,83 @@ class TasksViewModel: ObservableObject {
     @Published var tasks: [TaskItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
+    @Published var debugResponse: String? = nil
 
     private let taskService = TaskService.shared
+    private var hasLoadedOnce = false
+    private var lastLoadedUserId: Int? = nil
+    private var lastLoadedProjectId: Int? = nil
 
     func loadTasks(projectId: Int) async {
+        if isLoading || (lastLoadedProjectId == projectId && !tasks.isEmpty) {
+            return
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         if AppConfig.useMockData {
             tasks = MockData.tasks.filter { $0.projectId == projectId }
+            hasLoadedOnce = true
             return
         }
 
         do {
             tasks = try await taskService.getTasks(projectId: projectId)
+            lastLoadedProjectId = projectId
+            hasLoadedOnce = true
         } catch {
+            if isCancellation(error) {
+                return
+            }
             errorMessage = error.localizedDescription
         }
     }
 
     func loadTasksByUser(userId: Int) async {
+        if isLoading || (lastLoadedUserId == userId && !tasks.isEmpty) {
+            return
+        }
         isLoading = true
         errorMessage = nil
+        debugResponse = nil
         defer { isLoading = false }
 
         if AppConfig.useMockData {
             tasks = MockData.tasks.filter { task in
                 task.assignedUserId == userId || task.authorUserId == userId
             }
+            hasLoadedOnce = true
+            debugResponse = "mock:\(tasks.count)"
             return
         }
 
         do {
             tasks = try await taskService.getTasksByUser(userId: userId)
+            lastLoadedUserId = userId
+            hasLoadedOnce = true
+            debugResponse = "loaded:\(tasks.count)"
         } catch {
+            if isCancellation(error) {
+                debugResponse = "cancelled"
+                return
+            }
             errorMessage = error.localizedDescription
+            debugResponse = "error:\(error.localizedDescription)"
         }
+    }
+
+    private func isCancellation(_ error: Error) -> Bool {
+        if let apiError = error as? APIError,
+           case .networkError(let underlying) = apiError,
+           let urlError = underlying as? URLError,
+           urlError.code == .cancelled {
+            return true
+        }
+        if let urlError = error as? URLError, urlError.code == .cancelled {
+            return true
+        }
+        return false
     }
 
     func createTask(
