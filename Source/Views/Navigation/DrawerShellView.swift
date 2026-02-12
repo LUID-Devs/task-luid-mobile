@@ -40,6 +40,9 @@ struct DrawerShellView: View {
     @State private var showPriority = false
     @State private var showTimeline = false
     @State private var showUsers = false
+    @StateObject private var tasksViewModel = TasksViewModel()
+    @StateObject private var usersViewModel = UsersViewModel()
+    @StateObject private var projectsViewModel = ProjectsViewModel()
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -52,13 +55,13 @@ struct DrawerShellView: View {
                             Label("Home", systemImage: "house")
                         }
 
-                    TasksListView()
+                    TasksListView(viewModel: tasksViewModel, usersViewModel: usersViewModel)
                         .tag(DrawerTab.tasks)
                         .tabItem {
                             Label("Tasks", systemImage: "checklist")
                         }
 
-                    ProjectsListView()
+                    ProjectsListView(viewModel: projectsViewModel)
                         .tag(DrawerTab.projects)
                         .tabItem {
                             Label("Projects", systemImage: "folder")

@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct ProjectsListView: View {
-    @StateObject private var viewModel = ProjectsViewModel()
+    @ObservedObject var viewModel: ProjectsViewModel
     @State private var showCreate = false
     @State private var searchText = ""
     @State private var selectedFilter = "All"

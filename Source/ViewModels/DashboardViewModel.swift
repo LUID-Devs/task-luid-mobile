@@ -17,6 +17,8 @@ class DashboardViewModel: ObservableObject {
     @Published var summary: DashboardSummary? = nil
     @Published var recentProjects: [Project] = []
     @Published var recentTasks: [TaskItem] = []
+    @Published var allProjects: [Project] = []
+    @Published var allTasks: [TaskItem] = []
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
     private var lastLoadedUserId: Int? = nil
@@ -46,6 +48,8 @@ class DashboardViewModel: ObservableObject {
                 completedCount: completed,
                 inProgressCount: inProgress
             )
+            allProjects = projects
+            allTasks = tasks
             recentProjects = Array(projects.prefix(5))
             recentTasks = Array(tasks.prefix(5))
             return
@@ -67,6 +71,8 @@ class DashboardViewModel: ObservableObject {
                 completedCount: completed,
                 inProgressCount: inProgress
             )
+            allProjects = projects
+            allTasks = tasks
             recentProjects = Array(projects.prefix(5))
             recentTasks = Array(tasks.prefix(5))
         } catch {

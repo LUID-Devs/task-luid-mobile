@@ -39,4 +39,28 @@ class ProjectService {
     func getProjectStatuses(projectId: Int) async throws -> [ProjectStatus] {
         return try await client.get(APIEndpoint.projectStatuses(projectId))
     }
+
+    func createProjectStatus(projectId: Int, name: String, color: String? = nil) async throws -> ProjectStatus {
+        var params: [String: Any] = ["name": name]
+        if let color { params["color"] = color }
+        return try await client.post(APIEndpoint.projectStatuses(projectId), parameters: params)
+    }
+
+    func updateProjectStatus(projectId: Int, statusId: Int, name: String? = nil, color: String? = nil, order: Int? = nil) async throws -> ProjectStatus {
+        var params: [String: Any] = [:]
+        if let name { params["name"] = name }
+        if let color { params["color"] = color }
+        if let order { params["order"] = order }
+        return try await client.put(APIEndpoint.projectStatus(projectId, statusId: statusId), parameters: params)
+    }
+
+    func deleteProjectStatus(projectId: Int, statusId: Int, moveTasksTo: String? = nil) async throws -> DeleteResponse {
+        var params: [String: Any] = [:]
+        if let moveTasksTo { params["moveTasksTo"] = moveTasksTo }
+        return try await client.delete(APIEndpoint.projectStatus(projectId, statusId: statusId), parameters: params)
+    }
+
+    func reorderProjectStatuses(projectId: Int, statusIds: [Int]) async throws -> [ProjectStatus] {
+        return try await client.post(APIEndpoint.projectStatusesReorder(projectId), parameters: ["statusIds": statusIds])
+    }
 }

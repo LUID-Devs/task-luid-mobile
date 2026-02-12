@@ -20,6 +20,14 @@ enum AppConfig {
         #endif
     }
 
+    static var webBaseURL: String {
+        #if targetEnvironment(simulator)
+        return "http://localhost:5173"
+        #else
+        return "http://192.168.8.39:5173"
+        #endif
+    }
+
     static let apiTimeout: TimeInterval = 30
 
     static var appVersion: String {
@@ -57,6 +65,12 @@ enum APIEndpoint {
     }
     static func projectStatuses(_ projectId: Int) -> String {
         "/projects/\(projectId)/statuses"
+    }
+    static func projectStatus(_ projectId: Int, statusId: Int) -> String {
+        "/projects/\(projectId)/statuses/\(statusId)"
+    }
+    static func projectStatusesReorder(_ projectId: Int) -> String {
+        "/projects/\(projectId)/statuses/reorder"
     }
 
     // MARK: - Tasks

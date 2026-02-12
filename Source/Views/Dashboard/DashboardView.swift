@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import Charts
 
 struct DashboardView: View {
     @StateObject private var viewModel = DashboardViewModel()
@@ -18,14 +19,15 @@ struct DashboardView: View {
                 ScrollView {
                     VStack(spacing: LLSpacing.lg) {
                         headerSection
-                        welcomeCard
-                        planCard
+                        heroCard
                         statGrid
+                        planCard
                         recentTasksSection
+                        chartsGrid
                     }
                     .screenPadding()
                 }
-                .background(LLColors.background.color(for: colorScheme))
+                .background(dashboardBackground)
             }
         }
         .task(id: authViewModel.user?.userId) {
@@ -37,24 +39,49 @@ struct DashboardView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: LLSpacing.xs) {
-            Text("Project Management Dashboard")
-                .h3()
-            Text("Overview of your work and recent activity.")
-                .bodySmall()
-                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            Text("Dashboard")
+                .h2()
         }
     }
 
-    private var welcomeCard: some View {
-        LLCard(style: .standard) {
+    private var heroCard: some View {
+        let username = authViewModel.user?.username ?? "User"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMM d"
+        let dateLabel = formatter.string(from: Date())
+
+        return ZStack {
+            LinearGradient(
+                colors: [
+                    LLColors.muted.color(for: colorScheme),
+                    LLColors.card.color(for: colorScheme)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .opacity(colorScheme == .dark ? 0.6 : 1.0)
+
             VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                Text("Welcome back, \(authViewModel.user?.username ?? "User")!")
-                    .h4()
-                Text("Here’s your project overview and recent activity.")
+                HStack {
+                    Text(dateLabel.uppercased())
+                        .captionText()
+                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                    Spacer()
+                    LLBadge("Active", variant: .outline, size: .sm)
+                }
+                Text("Welcome back, \(username)")
+                    .h3()
+                Text("You have \(viewModel.recentTasks.count) tasks in motion today.")
                     .bodySmall()
                     .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
             }
+            .padding(LLSpacing.lg)
         }
+        .cornerRadius(LLSpacing.radiusLG)
+        .overlay(
+            RoundedRectangle(cornerRadius: LLSpacing.radiusLG)
+                .stroke(LLColors.border.color(for: colorScheme), lineWidth: 1)
+        )
     }
 
     private var planCard: some View {
@@ -105,15 +132,20 @@ struct DashboardView: View {
                 LLCard(style: .standard, padding: .md) {
                     VStack(alignment: .leading, spacing: LLSpacing.sm) {
                         HStack {
-                            Text(title)
-                                .captionText()
-                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                            Circle()
+                                .fill(LLColors.muted.color(for: colorScheme))
+                                .frame(width: 30, height: 30)
+                                .overlay(
+                                    Image(systemName: icon)
+                                        .foregroundColor(LLColors.foreground.color(for: colorScheme))
+                                )
                             Spacer()
-                            Image(systemName: icon)
-                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
                         }
                         Text(value)
                             .h3()
+                        Text(title)
+                            .captionText()
+                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
                     }
                 }
             }
@@ -123,7 +155,7 @@ struct DashboardView: View {
     private var recentTasksSection: some View {
         LLCard(style: .standard) {
             VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                Text("Your Recent Tasks")
+                Text("Recent Tasks")
                     .h4()
                 Text("Showing \(min(viewModel.recentTasks.count, 5)) of \(viewModel.summary?.taskCount ?? 0) tasks")
                     .captionText()
@@ -165,5 +197,106 @@ struct DashboardView: View {
                 }
             }
         }
+    }
+
+    private var chartsGrid: some View {
+        VStack(spacing: LLSpacing.md) {
+            priorityDistributionCard
+            projectStatusCard
+        }
+    }
+
+    private var priorityDistributionCard: some View {
+        let data = taskPriorityDistribution()
+        return LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                HStack(spacing: LLSpacing.xs) {
+                    Image(systemName: "flag")
+                    Text("Task Priority Distribution")
+                        .h4()
+                }
+                if data.isEmpty {
+                    Text("No tasks assigned to you yet.")
+                        .bodySmall()
+                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                } else {
+                    Chart(data) { item in
+                        BarMark(
+                            x: .value("Count", item.count),
+                            y: .value("Priority", item.name)
+                        )
+                        .foregroundStyle(LLColors.foreground.color(for: colorScheme))
+                    }
+                    .frame(height: 220)
+                }
+            }
+        }
+    }
+
+    private var projectStatusCard: some View {
+        let data = projectStatusDistribution()
+        return LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                HStack(spacing: LLSpacing.xs) {
+                    Image(systemName: "briefcase")
+                    Text("Project Status Overview")
+                        .h4()
+                }
+                if data.isEmpty {
+                    Text("No projects available.")
+                        .bodySmall()
+                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                } else {
+                    Chart(data) { item in
+                        BarMark(
+                            x: .value("Count", item.count),
+                            y: .value("Status", item.name)
+                        )
+                        .foregroundStyle(LLColors.mutedForeground.color(for: colorScheme))
+                    }
+                    .frame(height: 220)
+                }
+            }
+        }
+    }
+
+    private func taskPriorityDistribution() -> [ChartItem] {
+        let tasks = viewModel.allTasks
+        guard !tasks.isEmpty else { return [] }
+        return TaskPriority.allCases.map { priority in
+            let count = tasks.filter { $0.priority == priority }.count
+            return ChartItem(name: priority.rawValue, count: count)
+        }
+    }
+
+    private func projectStatusDistribution() -> [ChartItem] {
+        let projects = viewModel.allProjects
+        guard !projects.isEmpty else { return [] }
+        var counts: [String: Int] = [:]
+        for project in projects {
+            let status = project.archived == true ? "Archived" : (project.statistics?.status ?? "Active")
+            counts[status, default: 0] += 1
+        }
+        return counts
+            .map { ChartItem(name: $0.key, count: $0.value) }
+            .sorted { $0.name < $1.name }
+    }
+
+    private struct ChartItem: Identifiable {
+        let id = UUID()
+        let name: String
+        let count: Int
+    }
+
+    private var dashboardBackground: some View {
+        LinearGradient(
+            colors: [
+                LLColors.background.color(for: colorScheme),
+                LLColors.muted.color(for: colorScheme)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
     }
 }

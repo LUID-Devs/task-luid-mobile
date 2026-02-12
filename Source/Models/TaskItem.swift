@@ -32,7 +32,7 @@ enum TaskType: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-struct TaskItem: Codable, Identifiable {
+struct TaskItem: Codable, Identifiable, Hashable {
     let id: Int
     let title: String
     let description: String?
@@ -52,4 +52,12 @@ struct TaskItem: Codable, Identifiable {
     let assignee: User?
     let comments: [Comment]?
     let attachments: [Attachment]?
+
+    static func == (lhs: TaskItem, rhs: TaskItem) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }

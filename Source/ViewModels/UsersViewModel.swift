@@ -12,8 +12,12 @@ class UsersViewModel: ObservableObject {
     @Published var errorMessage: String? = nil
 
     private let userService = UserService.shared
+    private var hasLoaded = false
 
     func loadUsers() async {
+        if hasLoaded && !users.isEmpty {
+            return
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -25,6 +29,7 @@ class UsersViewModel: ObservableObject {
 
         do {
             users = try await userService.getUsers()
+            hasLoaded = true
         } catch {
             errorMessage = error.localizedDescription
         }

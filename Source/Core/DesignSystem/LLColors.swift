@@ -108,13 +108,13 @@ enum LLColors {
     static let popoverForeground = foreground
 
     static let destructive = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.145, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.9, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.55, c: 0.21, h: 25)),
+        dark: Color(oklch: OKLCH(l: 0.62, c: 0.22, h: 25))
     )
 
     static let destructiveForeground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.985, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.98, c: 0, h: 0)),
+        dark: Color(oklch: OKLCH(l: 0.98, c: 0, h: 0))
     )
 
     static let success = ColorSet(

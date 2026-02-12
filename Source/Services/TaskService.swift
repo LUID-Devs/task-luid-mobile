@@ -32,7 +32,14 @@ class TaskService {
         description: String?,
         projectId: Int,
         priority: TaskPriority?,
-        status: TaskStatus?
+        status: TaskStatus?,
+        tags: String? = nil,
+        startDate: String? = nil,
+        dueDate: String? = nil,
+        points: Int? = nil,
+        taskType: TaskType? = nil,
+        authorUserId: Int? = nil,
+        assignedUserId: Int? = nil
     ) async throws -> TaskItem {
         var params: [String: Any] = [
             "title": title,
@@ -41,9 +48,23 @@ class TaskService {
         if let description = description { params["description"] = description }
         if let priority = priority { params["priority"] = priority.rawValue }
         if let status = status { params["status"] = status.rawValue }
-        if let userId = keychain.getUserId(), let authorUserId = Int(userId) {
+        if let tags { params["tags"] = tags }
+        if let startDate { params["startDate"] = startDate }
+        if let dueDate { params["dueDate"] = dueDate }
+        if let points { params["points"] = points }
+        if let taskType { params["taskType"] = taskType.rawValue }
+
+        if let authorUserId {
             params["authorUserId"] = authorUserId
-            params["assignedUserId"] = authorUserId
+        }
+        if let assignedUserId {
+            params["assignedUserId"] = assignedUserId
+        }
+        if authorUserId == nil || assignedUserId == nil,
+           let userId = keychain.getUserId(),
+           let fallbackUserId = Int(userId) {
+            params["authorUserId"] = params["authorUserId"] ?? fallbackUserId
+            params["assignedUserId"] = params["assignedUserId"] ?? fallbackUserId
         }
 
         return try await client.post(APIEndpoint.tasks, parameters: params)
@@ -51,6 +72,10 @@ class TaskService {
 
     func updateTaskStatus(taskId: Int, status: TaskStatus) async throws -> TaskItem {
         return try await client.patch(APIEndpoint.taskStatus(taskId), parameters: ["status": status.rawValue])
+    }
+
+    func updateTaskStatus(taskId: Int, statusName: String) async throws -> TaskItem {
+        return try await client.patch(APIEndpoint.taskStatus(taskId), parameters: ["status": statusName])
     }
 
     func updateTask(
@@ -63,7 +88,8 @@ class TaskService {
         startDate: String?,
         dueDate: String?,
         points: Int?,
-        assignedUserId: Int?
+        assignedUserId: Int?,
+        projectId: Int? = nil
     ) async throws -> TaskItem {
         var params: [String: Any] = [
             "title": title
@@ -76,7 +102,12 @@ class TaskService {
         if let dueDate { params["dueDate"] = dueDate }
         if let points { params["points"] = points }
         if let assignedUserId { params["assignedUserId"] = assignedUserId }
+        if let projectId { params["projectId"] = projectId }
 
         return try await client.put(APIEndpoint.task(taskId), parameters: params)
+    }
+
+    func deleteTask(taskId: Int) async throws -> DeleteResponse {
+        return try await client.delete(APIEndpoint.task(taskId))
     }
 }

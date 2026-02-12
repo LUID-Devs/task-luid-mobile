@@ -8,6 +8,8 @@ import UniformTypeIdentifiers
 
 struct TaskDetailView: View {
     let task: TaskItem
+    let startEditing: Bool
+    let onTaskUpdated: ((TaskItem) -> Void)?
 
     @State private var taskState: TaskItem
     @State private var selectedStatus: TaskStatus?
@@ -45,118 +47,98 @@ struct TaskDetailView: View {
 
     @StateObject private var usersViewModel = UsersViewModel()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    init(task: TaskItem) {
+    init(task: TaskItem, startEditing: Bool = false, onTaskUpdated: ((TaskItem) -> Void)? = nil) {
         self.task = task
+        self.startEditing = startEditing
+        self.onTaskUpdated = onTaskUpdated
         _taskState = State(initialValue: task)
+        _isEditing = State(initialValue: startEditing)
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: LLSpacing.md) {
-                LLCard(style: .standard) {
-                    VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                        HStack {
-                            Text(taskState.title)
-                                .h3()
-                            Spacer()
-                            Button(isEditing ? "Cancel" : "Edit Task") {
-                                if isEditing {
-                                    applyTaskToForm(taskState)
+                VStack(spacing: LLSpacing.md) {
+                    LLCard(style: .standard) {
+                        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                            HStack {
+                                Text(taskState.title)
+                                    .bodyText()
+                                    .fontWeight(.semibold)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.85)
+                                Spacer()
+                                Button(isEditing ? "Cancel" : "Edit Task") {
+                                    if isEditing {
+                                        applyTaskToForm(taskState)
+                                    }
+                                    isEditing.toggle()
                                 }
-                                isEditing.toggle()
+                                .font(LLTypography.bodySmall())
                             }
-                            .font(LLTypography.bodySmall())
+                            if let description = taskState.description, !description.isEmpty {
+                                Text(description)
+                                    .bodyText()
+                                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                            }
+                            HStack(spacing: LLSpacing.sm) {
+                                if let priority = taskState.priority {
+                                    LLBadge(priority.rawValue, variant: .outline, size: .sm)
+                                }
+                                if let status = taskState.status {
+                                    LLBadge(status.rawValue, variant: status == .completed ? .success : .default, size: .sm)
+                                }
+                            }
                         }
-                        if let description = taskState.description, !description.isEmpty {
-                            Text(description)
-                                .bodyText()
-                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
-                        }
-                        HStack(spacing: LLSpacing.sm) {
-                            if let priority = taskState.priority {
-                                LLBadge(priority.rawValue, variant: .outline, size: .sm)
-                            }
-                            if let status = taskState.status {
-                                LLBadge(status.rawValue, variant: status == .completed ? .success : .default, size: .sm)
-                            }
+                    }
+
+                    LLCard(style: .standard) {
+                        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                            detailHeader("Priority/Status", icon: "flag")
+                            detailRow(label: "Priority", value: taskState.priority?.rawValue ?? "-")
+                            detailRow(label: "Status", value: taskState.status?.rawValue ?? "-")
                         }
                     }
                 }
 
                 if isEditing {
                     LLCard(style: .standard) {
-                        VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                            Text("Edit details")
+                        VStack(alignment: .leading, spacing: LLSpacing.md) {
+                            Text("Edit Task")
                                 .h4()
-                            LLTextField(title: "Title", placeholder: "Title", text: $editTitle)
-                            LLTextField(title: "Description", placeholder: "Description", text: $editDescription)
 
-                            Picker("Status", selection: $editStatus) {
-                                ForEach(availableStatuses.isEmpty ? fallbackStatuses : availableStatuses, id: \.self) { status in
-                                    Text(status).tag(status)
-                                }
-                            }
-                            .pickerStyle(.menu)
-
-                            Picker("Priority", selection: $editPriority) {
-                                ForEach(TaskPriority.allCases) { priority in
-                                    Text(priority.rawValue).tag(priority)
-                                }
-                            }
-                            .pickerStyle(.menu)
-
-                            LLTextField(title: "Tags", placeholder: "ui, backend", text: $editTags)
-                            LLTextField(title: "Points", placeholder: "0", text: $editPoints)
-
-                            DatePicker("Start date", selection: Binding(get: {
-                                editStartDate ?? Date()
-                            }, set: { editStartDate = $0 }), displayedComponents: .date)
-
-                            DatePicker("Due date", selection: Binding(get: {
-                                editDueDate ?? Date()
-                            }, set: { editDueDate = $0 }), displayedComponents: .date)
-
-                            Picker("Assignee", selection: $editAssigneeId) {
-                                Text("Unassigned").tag(Int?.none)
-                                ForEach(usersViewModel.users) { user in
-                                    Text(user.username).tag(Int?.some(user.userId))
-                                }
-                            }
-                            .pickerStyle(.menu)
+                            editFormContent
 
                             if let errorMessage = errorMessage {
                                 InlineErrorView(message: errorMessage)
                             }
 
-                            LLButton("Save", style: .primary, isLoading: isUpdating, fullWidth: true) {
+                            LLButton("Save Changes", style: .primary, isLoading: isUpdating, fullWidth: true) {
                                 Task { await saveEdits() }
                             }
                         }
                     }
                 }
 
-                LLCard(style: .standard) {
-                    VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                        detailHeader("Priority & Status", icon: "flag")
-                        detailRow(label: "Priority", value: taskState.priority?.rawValue ?? "-")
-                        detailRow(label: "Status", value: taskState.status?.rawValue ?? "-")
-                    }
-                }
+                
 
-                LLCard(style: .standard) {
-                    VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                        detailHeader("Dates", icon: "calendar")
-                        detailRow(label: "Due", value: taskState.dueDate ?? "-")
-                        detailRow(label: "Start", value: taskState.startDate ?? "-")
+                VStack(spacing: LLSpacing.md) {
+                    LLCard(style: .standard) {
+                        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                            detailHeader("Dates", icon: "calendar")
+                            detailRow(label: "Due", value: displayDate(taskState.dueDate))
+                            detailRow(label: "Start", value: displayDate(taskState.startDate))
+                        }
                     }
-                }
 
-                LLCard(style: .standard) {
-                    VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                        detailHeader("People", icon: "person")
-                        detailRow(label: "Assignee", value: taskState.assignee?.username ?? "Unassigned")
-                        detailRow(label: "Author", value: taskState.author?.username ?? "-")
+                    LLCard(style: .standard) {
+                        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                            detailHeader("People", icon: "person")
+                            detailRow(label: "Assignee", value: taskState.assignee?.username ?? "Unassigned")
+                            detailRow(label: "Author", value: taskState.author?.username ?? "-")
+                        }
                     }
                 }
 
@@ -224,6 +206,9 @@ struct TaskDetailView: View {
                 .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
             Text(title)
                 .h4()
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .layoutPriority(1)
         }
     }
 
@@ -232,9 +217,13 @@ struct TaskDetailView: View {
             Text(label)
                 .bodySmall()
                 .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Spacer()
             Text(value)
                 .bodySmall()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
     }
 
@@ -242,11 +231,54 @@ struct TaskDetailView: View {
         guard let selectedStatus else { return }
         isUpdating = true
         errorMessage = nil
+        let previous = taskState
+        taskState = TaskItem(
+            id: previous.id,
+            title: previous.title,
+            description: previous.description,
+            descriptionImageUrl: previous.descriptionImageUrl,
+            status: selectedStatus,
+            priority: previous.priority,
+            taskType: previous.taskType,
+            tags: previous.tags,
+            startDate: previous.startDate,
+            dueDate: previous.dueDate,
+            points: previous.points,
+            projectId: previous.projectId,
+            authorUserId: previous.authorUserId,
+            assignedUserId: previous.assignedUserId,
+            author: previous.author,
+            assignee: previous.assignee,
+            comments: previous.comments,
+            attachments: previous.attachments
+        )
         defer { isUpdating = false }
 
         do {
-            taskState = try await TaskService.shared.updateTaskStatus(taskId: taskState.id, status: selectedStatus)
+            let updated = try await TaskService.shared.updateTaskStatus(taskId: taskState.id, status: selectedStatus)
+            taskState = TaskItem(
+                id: updated.id,
+                title: updated.title,
+                description: updated.description,
+                descriptionImageUrl: updated.descriptionImageUrl,
+                status: updated.status ?? selectedStatus,
+                priority: updated.priority ?? taskState.priority,
+                taskType: updated.taskType ?? taskState.taskType,
+                tags: updated.tags ?? taskState.tags,
+                startDate: updated.startDate ?? taskState.startDate,
+                dueDate: updated.dueDate ?? taskState.dueDate,
+                points: updated.points ?? taskState.points,
+                projectId: updated.projectId,
+                authorUserId: updated.authorUserId ?? taskState.authorUserId,
+                assignedUserId: updated.assignedUserId ?? taskState.assignedUserId,
+                author: updated.author ?? taskState.author,
+                assignee: updated.assignee ?? taskState.assignee,
+                comments: taskState.comments,
+                attachments: taskState.attachments
+            )
+            onTaskUpdated?(taskState)
         } catch {
+            taskState = previous
             errorMessage = error.localizedDescription
         }
     }
@@ -283,6 +315,7 @@ struct TaskDetailView: View {
             )
             taskState = updated
             isEditing = false
+            onTaskUpdated?(taskState)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -318,9 +351,125 @@ struct TaskDetailView: View {
 
     private func isoString(from date: Date?) -> String? {
         guard let date else { return nil }
+        let normalized = normalizeDate(date)
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
-        return iso.string(from: date)
+        iso.timeZone = TimeZone.current
+        return iso.string(from: normalized)
+    }
+
+    private func displayDate(_ value: String?) -> String {
+        guard let date = parseDate(value) else { return "-" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    @ViewBuilder
+    private var editFormContent: some View {
+        if horizontalSizeClass == .compact {
+            VStack(alignment: .leading, spacing: LLSpacing.md) {
+                editBasics
+                editStatusPriority
+                editSchedule
+                editOwnership
+                editMeta
+            }
+        } else {
+            HStack(alignment: .top, spacing: LLSpacing.lg) {
+                VStack(alignment: .leading, spacing: LLSpacing.md) {
+                    editBasics
+                    editStatusPriority
+                }
+                VStack(alignment: .leading, spacing: LLSpacing.md) {
+                    editSchedule
+                    editOwnership
+                    editMeta
+                }
+            }
+        }
+    }
+
+    private var editBasics: some View {
+        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+            Text("Basics")
+                .captionText()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            LLTextField(title: "Title", placeholder: "Task title", text: $editTitle)
+            LLTextField(title: "Description", placeholder: "Short description", text: $editDescription)
+        }
+    }
+
+    private var editStatusPriority: some View {
+        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+            Text("Status & Priority")
+                .captionText()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            Picker("Status", selection: $editStatus) {
+                ForEach(availableStatuses.isEmpty ? fallbackStatuses : availableStatuses, id: \.self) { status in
+                    Text(status).tag(status)
+                }
+            }
+            .pickerStyle(.menu)
+
+            Picker("Priority", selection: $editPriority) {
+                ForEach(TaskPriority.allCases) { priority in
+                    Text(priority.rawValue).tag(priority)
+                }
+            }
+            .pickerStyle(.menu)
+        }
+    }
+
+    private var editSchedule: some View {
+        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+            Text("Schedule")
+                .captionText()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            DatePicker("Start date", selection: Binding(get: {
+                editStartDate ?? Date()
+            }, set: { editStartDate = $0 }), displayedComponents: .date)
+
+            DatePicker("Due date", selection: Binding(get: {
+                editDueDate ?? Date()
+            }, set: { editDueDate = $0 }), displayedComponents: .date)
+        }
+    }
+
+    private var editOwnership: some View {
+        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+            Text("Ownership")
+                .captionText()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            Picker("Assignee", selection: $editAssigneeId) {
+                Text("Unassigned").tag(Int?.none)
+                ForEach(usersViewModel.users) { user in
+                    Text(user.username).tag(Int?.some(user.userId))
+                }
+            }
+            .pickerStyle(.menu)
+        }
+    }
+
+    private var editMeta: some View {
+        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+            Text("Meta")
+                .captionText()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            LLTextField(title: "Tags", placeholder: "ui, backend", text: $editTags)
+            LLTextField(title: "Points", placeholder: "0", text: $editPoints)
+        }
+    }
+
+
+    private func normalizeDate(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
+        components.hour = 12
+        components.minute = 0
+        components.second = 0
+        return calendar.date(from: components) ?? date
     }
 
     private var commentsSection: some View {

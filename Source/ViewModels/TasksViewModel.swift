@@ -16,9 +16,11 @@ class TasksViewModel: ObservableObject {
     private var hasLoadedOnce = false
     private var lastLoadedUserId: Int? = nil
     private var lastLoadedProjectId: Int? = nil
+    private var lastUserLoadAt: Date? = nil
+    private let minRefreshInterval: TimeInterval = 5
 
-    func loadTasks(projectId: Int) async {
-        if isLoading || (lastLoadedProjectId == projectId && !tasks.isEmpty) {
+    func loadTasks(projectId: Int, force: Bool = false) async {
+        if !force, (isLoading || (lastLoadedProjectId == projectId && !tasks.isEmpty)) {
             return
         }
         isLoading = true
@@ -43,9 +45,14 @@ class TasksViewModel: ObservableObject {
         }
     }
 
-    func loadTasksByUser(userId: Int) async {
-        if isLoading || (lastLoadedUserId == userId && !tasks.isEmpty) {
-            return
+    func loadTasksByUser(userId: Int, force: Bool = false) async {
+        if !force {
+            if isLoading || (lastLoadedUserId == userId && !tasks.isEmpty) {
+                return
+            }
+            if let lastUserLoadAt, Date().timeIntervalSince(lastUserLoadAt) < minRefreshInterval {
+                return
+            }
         }
         isLoading = true
         errorMessage = nil
@@ -64,6 +71,7 @@ class TasksViewModel: ObservableObject {
         do {
             tasks = try await taskService.getTasksByUser(userId: userId)
             lastLoadedUserId = userId
+            lastUserLoadAt = Date()
             hasLoadedOnce = true
             debugResponse = "loaded:\(tasks.count)"
         } catch {
@@ -94,7 +102,14 @@ class TasksViewModel: ObservableObject {
         description: String?,
         projectId: Int,
         priority: TaskPriority?,
-        status: TaskStatus?
+        status: TaskStatus?,
+        tags: String? = nil,
+        startDate: Date? = nil,
+        dueDate: Date? = nil,
+        points: Int? = nil,
+        taskType: TaskType? = nil,
+        assignedUserId: Int? = nil,
+        authorUserId: Int? = nil
     ) async -> TaskItem? {
         isLoading = true
         errorMessage = nil
@@ -111,14 +126,14 @@ class TasksViewModel: ObservableObject {
                 descriptionImageUrl: nil,
                 status: status ?? .toDo,
                 priority: priority ?? .medium,
-                taskType: .feature,
-                tags: nil,
-                startDate: nil,
-                dueDate: "2026-02-20",
-                points: 3,
+                taskType: taskType ?? .feature,
+                tags: tags,
+                startDate: isoString(from: startDate),
+                dueDate: isoString(from: dueDate) ?? "2026-02-20",
+                points: points,
                 projectId: projectId,
                 authorUserId: author?.userId,
-                assignedUserId: assignee?.userId,
+                assignedUserId: assignedUserId ?? assignee?.userId,
                 author: author,
                 assignee: assignee,
                 comments: [],
@@ -134,13 +149,43 @@ class TasksViewModel: ObservableObject {
                 description: description,
                 projectId: projectId,
                 priority: priority,
-                status: status
+                status: status,
+                tags: tags,
+                startDate: isoString(from: startDate),
+                dueDate: isoString(from: dueDate),
+                points: points,
+                taskType: taskType,
+                authorUserId: authorUserId,
+                assignedUserId: assignedUserId
             )
             tasks.insert(task, at: 0)
             return task
         } catch {
             errorMessage = error.localizedDescription
             return nil
+        }
+    }
+
+    private func isoString(from date: Date?) -> String? {
+        guard let date else { return nil }
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
+        components.hour = 12
+        components.minute = 0
+        components.second = 0
+        let normalized = calendar.date(from: components) ?? date
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        iso.timeZone = TimeZone.current
+        return iso.string(from: normalized)
+    }
+
+    func upsertTask(_ task: TaskItem) {
+        if let index = tasks.firstIndex(where: { $0.id == task.id }) {
+            tasks[index] = task
+        } else {
+            tasks.insert(task, at: 0)
         }
     }
 }

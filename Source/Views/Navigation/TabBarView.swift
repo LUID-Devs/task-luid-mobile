@@ -7,6 +7,9 @@ import SwiftUI
 
 struct TabBarView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var tasksViewModel = TasksViewModel()
+    @StateObject private var usersViewModel = UsersViewModel()
+    @StateObject private var projectsViewModel = ProjectsViewModel()
 
     var body: some View {
         TabView {
@@ -15,12 +18,12 @@ struct TabBarView: View {
                     Label("Home", systemImage: "house")
                 }
 
-            ProjectsListView()
+            ProjectsListView(viewModel: projectsViewModel)
                 .tabItem {
                     Label("Projects", systemImage: "folder")
                 }
 
-            TasksListView()
+            TasksListView(viewModel: tasksViewModel, usersViewModel: usersViewModel)
                 .tabItem {
                     Label("Tasks", systemImage: "checklist")
                 }

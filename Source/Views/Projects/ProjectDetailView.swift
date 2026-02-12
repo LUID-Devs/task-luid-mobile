@@ -4,6 +4,8 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
+import UIKit
 
 struct ProjectDetailView: View {
     let project: Project
@@ -13,7 +15,41 @@ struct ProjectDetailView: View {
     @State private var statuses: [ProjectStatus] = []
     @State private var isLoadingStatuses = false
     @State private var selectedView = "List"
+    @State private var draggingTaskId: Int? = nil
+    @State private var dropTargetStatus: String? = nil
+    @State private var statusError: String? = nil
+    @State private var statusActionError: String? = nil
+    @State private var isColumnsLocked = true
+    @State private var statusSheetMode: StatusSheetMode? = nil
+    @State private var statusName = ""
+    @State private var isSavingStatus = false
+    @State private var statusToDelete: ProjectStatus? = nil
+    @State private var taskToDelete: TaskItem? = nil
+    @State private var navigationTask: TaskItem? = nil
+    @State private var navigationTaskEditMode = false
+    @State private var isNavigatingToTask = false
+    @State private var isDuplicatingTask = false
     @Environment(\.colorScheme) private var colorScheme
+
+    private let workflowChain = ["To Do", "Work In Progress", "Under Review", "Completed"]
+    private let wipLimits: [String: Int] = [
+        "To Do": 20,
+        "Work In Progress": 5,
+        "Under Review": 8,
+        "Completed": .max
+    ]
+
+    private enum StatusSheetMode: Identifiable {
+        case add
+        case edit(ProjectStatus)
+
+        var id: String {
+            switch self {
+            case .add: return "add"
+            case .edit(let status): return "edit-\(status.id)"
+            }
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,15 +71,25 @@ struct ProjectDetailView: View {
                         statusColumns
                         viewToggle
                         actionBar
+                        if let navigationTask {
+                            NavigationLink("", destination: TaskDetailView(task: navigationTask, startEditing: navigationTaskEditMode, onTaskUpdated: { updated in
+                                tasksViewModel.upsertTask(updated)
+                            }), isActive: $isNavigatingToTask)
+                            .hidden()
+                        }
                         if selectedView == "List" {
                             ForEach(tasksViewModel.tasks) { task in
                                 NavigationLink {
-                                    TaskDetailView(task: task)
+                                    TaskDetailView(task: task, onTaskUpdated: { updated in
+                                        tasksViewModel.upsertTask(updated)
+                                    })
                                 } label: {
                                     TaskRowView(task: task)
                                 }
                                 .buttonStyle(PlainButtonStyle())
                             }
+                        } else if selectedView == "Board" {
+                            boardView
                         } else {
                             LLEmptyState(
                                 icon: "square.grid.2x2",
@@ -66,22 +112,57 @@ struct ProjectDetailView: View {
             }
         }
         .sheet(isPresented: $showCreateTask) {
-            TaskCreateView(projectId: project.id) { title, description, priority, status in
+            TaskCreateView(projectId: project.id) { request in
                 let task = await tasksViewModel.createTask(
-                    title: title,
-                    description: description,
+                    title: request.title,
+                    description: request.description,
                     projectId: project.id,
-                    priority: priority,
-                    status: status
+                    priority: request.priority,
+                    status: request.status,
+                    tags: request.tags,
+                    startDate: request.startDate,
+                    dueDate: request.dueDate,
+                    points: Int(request.points),
+                    taskType: request.taskType,
+                    assignedUserId: request.assigneeId,
+                    authorUserId: request.authorUserId
                 )
                 if task == nil {
-                    return tasksViewModel.errorMessage ?? "Failed to create task."
+                    return (nil, tasksViewModel.errorMessage ?? "Failed to create task.")
                 }
-                return nil
+                NotificationCenter.default.post(name: Notification.Name("tasksDidChange"), object: nil)
+                return (task, nil)
             }
         }
+        .sheet(item: $statusSheetMode) { mode in
+            statusEditorSheet(mode: mode)
+        }
+        .alert("Delete Task", isPresented: Binding(get: {
+            taskToDelete != nil
+        }, set: { value in
+            if !value { taskToDelete = nil }
+        })) {
+            Button("Delete", role: .destructive) {
+                Task { await deleteTask() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this task?")
+        }
+        .alert("Delete Status", isPresented: Binding(get: {
+            statusToDelete != nil
+        }, set: { value in
+            if !value { statusToDelete = nil }
+        })) {
+            Button("Delete", role: .destructive) {
+                Task { await deleteStatus() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Tasks in this status will be moved to \"To Do\".")
+        }
         .task {
-            await tasksViewModel.loadTasks(projectId: project.id)
+            await tasksViewModel.loadTasks(projectId: project.id, force: true)
             await loadStatuses()
         }
     }
@@ -189,6 +270,469 @@ struct ProjectDetailView: View {
         }
     }
 
+    private var boardView: some View {
+        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+            if let statusError {
+                InlineErrorView(message: statusError)
+            }
+            if let statusActionError {
+                InlineErrorView(message: statusActionError)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: LLSpacing.md) {
+                    ForEach(statuses.isEmpty ? fallbackStatuses : statuses) { status in
+                        let columnTasks = tasksViewModel.tasks.filter { $0.status?.rawValue == status.name }
+                        VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                            columnHeader(status: status, count: columnTasks.count)
+
+                            ForEach(columnTasks) { task in
+                                NavigationLink {
+                                    TaskDetailView(task: task, onTaskUpdated: { updated in
+                                        tasksViewModel.upsertTask(updated)
+                                    })
+                                } label: {
+                                    boardTaskCard(task)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .onDrag {
+                                    draggingTaskId = task.id
+                                    return NSItemProvider(object: String(task.id) as NSString)
+                                }
+                            }
+
+                            if columnTasks.isEmpty {
+                                Text("Drop tasks here")
+                                    .bodySmall()
+                                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .padding(.vertical, LLSpacing.md)
+                            }
+                        }
+                        .padding(LLSpacing.sm)
+                        .frame(width: 240)
+                        .background(dropTargetStatus == status.name ? LLColors.muted.color(for: colorScheme) : LLColors.card.color(for: colorScheme))
+                        .cornerRadius(LLSpacing.radiusLG)
+                        .onDrop(of: [UTType.text], isTargeted: Binding(get: {
+                            dropTargetStatus == status.name
+                        }, set: { isTargeted in
+                            dropTargetStatus = isTargeted ? status.name : nil
+                        })) { providers in
+                            handleDrop(providers: providers, statusName: status.name)
+                        }
+                    }
+                }
+                .padding(.vertical, LLSpacing.sm)
+            }
+        }
+    }
+
+    private func boardTaskCard(_ task: TaskItem) -> some View {
+        LLCard(style: .standard, padding: .sm) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                if let previewURL = attachmentPreviewURL(for: task) {
+                    AsyncImage(url: previewURL) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure:
+                            Rectangle()
+                                .fill(LLColors.muted.color(for: colorScheme))
+                        case .empty:
+                            Rectangle()
+                                .fill(LLColors.muted.color(for: colorScheme))
+                                .overlay(ProgressView())
+                        @unknown default:
+                            Rectangle()
+                                .fill(LLColors.muted.color(for: colorScheme))
+                        }
+                    }
+                    .frame(height: 110)
+                    .clipped()
+                    .cornerRadius(LLSpacing.radiusMD)
+                }
+
+                HStack(alignment: .top, spacing: LLSpacing.sm) {
+                    Text(task.title)
+                        .bodyText()
+                    Spacer()
+                    taskMenu(task)
+                }
+
+                if let dueStatus = dueDateStatus(for: task) {
+                    HStack(spacing: LLSpacing.xs) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                        Text(dueStatus)
+                            .bodySmall()
+                    }
+                    .foregroundColor(LLColors.warning.color(for: colorScheme))
+                }
+
+                HStack(spacing: LLSpacing.xs) {
+                    if let priority = task.priority {
+                        LLBadge(priority.rawValue, variant: .outline, size: .sm)
+                    }
+                    if let type = task.taskType?.rawValue {
+                        LLBadge(type, variant: .outline, size: .sm)
+                    }
+                    let tags = Array(taskTags(task).prefix(2))
+                    ForEach(tags, id: \.self) { tag in
+                        LLBadge(tag, variant: .outline, size: .sm)
+                    }
+                    if taskTags(task).count > 2 {
+                        Text("+\(taskTags(task).count - 2)")
+                            .bodySmall()
+                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                    }
+                }
+
+                HStack {
+                    assigneeSummary(task)
+                    Spacer()
+                    HStack(spacing: LLSpacing.sm) {
+                        if let dueDate = formattedDueDate(task) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                Text(dueDate)
+                            }
+                            .font(LLTypography.bodySmall())
+                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                        }
+                        let commentCount = task.comments?.count ?? 0
+                        if commentCount > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "message")
+                                Text("\(commentCount)")
+                            }
+                            .font(LLTypography.bodySmall())
+                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func columnHeader(status: ProjectStatus, count: Int) -> some View {
+        HStack(spacing: LLSpacing.xs) {
+            Text(status.name)
+                .h4()
+            Text("\(count)")
+                .bodySmall()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            Spacer()
+            Menu {
+                Button(isColumnsLocked ? "Unlock Columns" : "Lock Columns") {
+                    isColumnsLocked.toggle()
+                }
+
+                Button("Move Left") {
+                    Task { await moveColumn(status: status, direction: -1) }
+                }
+                .disabled(!canMoveLeft(status))
+
+                Button("Move Right") {
+                    Task { await moveColumn(status: status, direction: 1) }
+                }
+                .disabled(!canMoveRight(status))
+
+                Divider()
+
+                Button("Add Status") {
+                    statusName = ""
+                    statusSheetMode = .add
+                }
+
+                Button("Edit Status") {
+                    statusName = status.name
+                    statusSheetMode = .edit(status)
+                }
+                .disabled(statuses.isEmpty)
+
+                Button("Delete Status", role: .destructive) {
+                    statusToDelete = status
+                }
+                .disabled(status.isDefault || statuses.isEmpty)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                    .frame(width: 24, height: 24)
+            }
+        }
+        .padding(.bottom, LLSpacing.xs)
+    }
+
+    @ViewBuilder
+    private func taskMenu(_ task: TaskItem) -> some View {
+        let shareURL = taskShareURL(task)
+        Menu {
+            Button {
+                openTask(task, edit: false)
+            } label: {
+                Label("View", systemImage: "eye")
+            }
+
+            Button {
+                openTask(task, edit: true)
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+
+            Button {
+                Task { await duplicateTask(task) }
+            } label: {
+                Label(isDuplicatingTask ? "Duplicating..." : "Duplicate", systemImage: "doc.on.doc")
+            }
+            .disabled(isDuplicatingTask)
+
+            Button {
+                if let shareURL {
+                    UIPasteboard.general.string = shareURL.absoluteString
+                }
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .disabled(shareURL == nil)
+
+            Button(role: .destructive) {
+                taskToDelete = task
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                .frame(width: 24, height: 24)
+        }
+    }
+
+    private func statusEditorSheet(mode: StatusSheetMode) -> some View {
+        VStack(spacing: LLSpacing.lg) {
+            Text(modeTitle(mode))
+                .h3()
+
+            LLTextField(title: "Status name", placeholder: "Status name", text: $statusName)
+
+            if let statusActionError {
+                InlineErrorView(message: statusActionError)
+            }
+
+            HStack(spacing: LLSpacing.sm) {
+                LLButton("Cancel", style: .outline, size: .sm, fullWidth: true) {
+                    statusSheetMode = nil
+                }
+                LLButton(modePrimaryAction(mode), style: .primary, size: .sm, isLoading: isSavingStatus, fullWidth: true) {
+                    Task { await saveStatus(mode) }
+                }
+            }
+        }
+        .screenPadding()
+    }
+
+    private func modeTitle(_ mode: StatusSheetMode) -> String {
+        switch mode {
+        case .add: return "Add Status"
+        case .edit: return "Edit Status"
+        }
+    }
+
+    private func modePrimaryAction(_ mode: StatusSheetMode) -> String {
+        switch mode {
+        case .add: return "Create"
+        case .edit: return "Save"
+        }
+    }
+
+    private func openTask(_ task: TaskItem, edit: Bool) {
+        navigationTaskEditMode = edit
+        navigationTask = task
+        isNavigatingToTask = true
+    }
+
+    private func taskTags(_ task: TaskItem) -> [String] {
+        (task.tags ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    @ViewBuilder
+    private func assigneeSummary(_ task: TaskItem) -> some View {
+        let name = task.assignee?.username ?? task.author?.username ?? "Unassigned"
+        let initial = name.prefix(1).uppercased()
+        HStack(spacing: LLSpacing.xs) {
+            Circle()
+                .fill(LLColors.muted.color(for: colorScheme))
+                .frame(width: 22, height: 22)
+                .overlay(
+                    Text(initial)
+                        .font(LLTypography.bodySmall())
+                        .foregroundColor(LLColors.foreground.color(for: colorScheme))
+                )
+            Text(name)
+                .bodySmall()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+        }
+    }
+
+    private func formattedDueDate(_ task: TaskItem) -> String? {
+        guard let date = parseDate(task.dueDate) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+
+    private func dueDateStatus(for task: TaskItem) -> String? {
+        guard let dueDate = parseDate(task.dueDate) else { return nil }
+        if task.status == .completed { return nil }
+        let now = Date()
+        if dueDate < now {
+            return "Overdue"
+        }
+        if let days = Calendar.current.dateComponents([.day], from: now, to: dueDate).day,
+           days <= 2 {
+            return "Due soon"
+        }
+        return nil
+    }
+
+    private func attachmentPreviewURL(for task: TaskItem) -> URL? {
+        guard let attachment = task.attachments?.first else { return nil }
+        let urlString = attachment.presignedUrl ?? attachment.fileURL
+        guard urlString.lowercased().hasPrefix("http") else { return nil }
+        let ext = (attachment.fileName ?? urlString).lowercased()
+        if ext.hasSuffix(".png") || ext.hasSuffix(".jpg") || ext.hasSuffix(".jpeg") {
+            return URL(string: urlString)
+        }
+        return nil
+    }
+
+    private func taskShareURL(_ task: TaskItem) -> URL? {
+        URL(string: "\(AppConfig.webBaseURL)/dashboard/tasks/\(task.id)")
+    }
+
+    private func canMoveLeft(_ status: ProjectStatus) -> Bool {
+        guard !isColumnsLocked,
+              let index = statuses.firstIndex(where: { $0.id == status.id }) else {
+            return false
+        }
+        return index > 0
+    }
+
+    private func canMoveRight(_ status: ProjectStatus) -> Bool {
+        guard !isColumnsLocked,
+              let index = statuses.firstIndex(where: { $0.id == status.id }) else {
+            return false
+        }
+        return index < statuses.count - 1
+    }
+
+    private func moveColumn(status: ProjectStatus, direction: Int) async {
+        guard let index = statuses.firstIndex(where: { $0.id == status.id }) else { return }
+        let newIndex = index + direction
+        guard newIndex >= 0, newIndex < statuses.count else { return }
+        var reordered = statuses
+        reordered.swapAt(index, newIndex)
+        let statusIds = reordered.map(\.id)
+
+        statusActionError = nil
+        do {
+            let updated = try await ProjectService.shared.reorderProjectStatuses(projectId: project.id, statusIds: statusIds)
+            statuses = updated.sorted { $0.order < $1.order }
+        } catch {
+            statusActionError = error.localizedDescription
+        }
+    }
+
+    private func saveStatus(_ mode: StatusSheetMode) async {
+        let trimmed = statusName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            statusActionError = "Status name is required."
+            return
+        }
+
+        isSavingStatus = true
+        statusActionError = nil
+        defer { isSavingStatus = false }
+
+        do {
+            switch mode {
+            case .add:
+                _ = try await ProjectService.shared.createProjectStatus(projectId: project.id, name: trimmed)
+            case .edit(let status):
+                _ = try await ProjectService.shared.updateProjectStatus(projectId: project.id, statusId: status.id, name: trimmed)
+            }
+            statusSheetMode = nil
+            await loadStatuses()
+            await tasksViewModel.loadTasks(projectId: project.id, force: true)
+        } catch {
+            statusActionError = error.localizedDescription
+        }
+    }
+
+    private func deleteStatus() async {
+        guard let status = statusToDelete else { return }
+        statusActionError = nil
+        defer { statusToDelete = nil }
+        do {
+            _ = try await ProjectService.shared.deleteProjectStatus(projectId: project.id, statusId: status.id, moveTasksTo: "To Do")
+            await loadStatuses()
+            await tasksViewModel.loadTasks(projectId: project.id, force: true)
+        } catch {
+            statusActionError = error.localizedDescription
+        }
+    }
+
+    private func deleteTask() async {
+        guard let task = taskToDelete else { return }
+        statusActionError = nil
+        defer { taskToDelete = nil }
+        do {
+            _ = try await TaskService.shared.deleteTask(taskId: task.id)
+            tasksViewModel.tasks.removeAll { $0.id == task.id }
+        } catch {
+            statusActionError = error.localizedDescription
+        }
+    }
+
+    private func duplicateTask(_ task: TaskItem) async {
+        guard !isDuplicatingTask else { return }
+        isDuplicatingTask = true
+        statusActionError = nil
+        defer { isDuplicatingTask = false }
+        do {
+            let duplicated = try await TaskService.shared.createTask(
+                title: "\(task.title) (Copy)",
+                description: task.description,
+                projectId: task.projectId,
+                priority: task.priority,
+                status: task.status,
+                tags: task.tags,
+                startDate: task.startDate,
+                dueDate: task.dueDate,
+                points: task.points,
+                taskType: task.taskType,
+                authorUserId: task.authorUserId,
+                assignedUserId: task.assignedUserId
+            )
+            tasksViewModel.tasks.insert(duplicated, at: 0)
+        } catch {
+            statusActionError = error.localizedDescription
+        }
+    }
+
+    private func parseDate(_ value: String?) -> Date? {
+        guard let value else { return nil }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso.date(from: value) {
+            return date
+        }
+        iso.formatOptions = [.withInternetDateTime]
+        return iso.date(from: value)
+    }
+
     private var fallbackStatuses: [ProjectStatus] {
         [
             ProjectStatus(id: 0, name: "To Do", color: nil, order: 0, isDefault: true, projectId: project.id, createdAt: "", updatedAt: ""),
@@ -208,5 +752,81 @@ struct ProjectDetailView: View {
         } catch {
             statuses = []
         }
+    }
+
+    private func handleDrop(providers: [NSItemProvider], statusName: String) -> Bool {
+        guard let provider = providers.first else { return false }
+        provider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { item, _ in
+            var value: String?
+            if let data = item as? Data {
+                value = String(data: data, encoding: .utf8)
+            } else if let text = item as? String {
+                value = text
+            }
+            guard let raw = value, let taskId = Int(raw) else { return }
+            Task { await moveTask(taskId: taskId, to: statusName) }
+        }
+        return true
+    }
+
+    private func moveTask(taskId: Int, to statusName: String) async {
+        guard let index = tasksViewModel.tasks.firstIndex(where: { $0.id == taskId }) else { return }
+        let original = tasksViewModel.tasks[index]
+        let fromStatus = original.status?.rawValue ?? "To Do"
+        guard fromStatus != statusName else { return }
+
+        if !isValidWorkflowTransition(from: fromStatus, to: statusName) {
+            statusError = "Workflow violation: move tasks one step at a time."
+            return
+        }
+
+        let currentCount = tasksViewModel.tasks.filter { ($0.status?.rawValue ?? "To Do") == statusName }.count
+        let limit = wipLimits[statusName] ?? .max
+        if limit != .max && currentCount >= limit {
+            statusError = "WIP limit reached for \(statusName)."
+            return
+        }
+
+        let nextStatus = TaskStatus(rawValue: statusName)
+        tasksViewModel.tasks[index] = taskCopy(original, status: nextStatus ?? original.status)
+        statusError = nil
+
+        do {
+            _ = try await TaskService.shared.updateTaskStatus(taskId: taskId, statusName: statusName)
+        } catch {
+            tasksViewModel.tasks[index] = original
+            statusError = error.localizedDescription
+        }
+    }
+
+    private func isValidWorkflowTransition(from: String, to: String) -> Bool {
+        guard let fromIndex = workflowChain.firstIndex(of: from),
+              let toIndex = workflowChain.firstIndex(of: to) else {
+            return true
+        }
+        return toIndex <= fromIndex + 1
+    }
+
+    private func taskCopy(_ task: TaskItem, status: TaskStatus?) -> TaskItem {
+        TaskItem(
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            descriptionImageUrl: task.descriptionImageUrl,
+            status: status,
+            priority: task.priority,
+            taskType: task.taskType,
+            tags: task.tags,
+            startDate: task.startDate,
+            dueDate: task.dueDate,
+            points: task.points,
+            projectId: task.projectId,
+            authorUserId: task.authorUserId,
+            assignedUserId: task.assignedUserId,
+            author: task.author,
+            assignee: task.assignee,
+            comments: task.comments,
+            attachments: task.attachments
+        )
     }
 }
