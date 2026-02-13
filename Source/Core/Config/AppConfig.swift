@@ -14,9 +14,9 @@ enum AppConfig {
 
     static var apiBaseURL: String {
         #if targetEnvironment(simulator)
-        return "http://127.0.0.1:8000"
+        return "http://127.0.0.1:8080"
         #else
-        return "http://192.168.8.39:8000"
+        return "http://192.168.8.39:8080"
         #endif
     }
 
@@ -71,6 +71,9 @@ enum APIEndpoint {
     }
     static func projectStatusesReorder(_ projectId: Int) -> String {
         "/projects/\(projectId)/statuses/reorder"
+    }
+    static func projectFavorite(_ projectId: Int) -> String {
+        "/projects/\(projectId)/favorite"
     }
 
     // MARK: - Tasks

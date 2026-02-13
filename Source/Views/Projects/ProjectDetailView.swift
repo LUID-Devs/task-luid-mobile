@@ -11,6 +11,7 @@ struct ProjectDetailView: View {
     let project: Project
 
     @StateObject private var tasksViewModel = TasksViewModel()
+    @StateObject private var usersViewModel = UsersViewModel()
     @State private var showCreateTask = false
     @State private var statuses: [ProjectStatus] = []
     @State private var isLoadingStatuses = false
@@ -29,6 +30,10 @@ struct ProjectDetailView: View {
     @State private var navigationTaskEditMode = false
     @State private var isNavigatingToTask = false
     @State private var isDuplicatingTask = false
+    @State private var searchQuery = ""
+    @State private var selectedStatusFilter: String? = nil
+    @State private var selectedPriorityFilter: TaskPriority? = nil
+    @State private var selectedAssigneeId: Int? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     private let workflowChain = ["To Do", "Work In Progress", "Under Review", "Completed"]
@@ -68,6 +73,7 @@ struct ProjectDetailView: View {
                 ScrollView {
                     VStack(spacing: LLSpacing.md) {
                         projectHeader
+                        filterBar
                         statusColumns
                         viewToggle
                         actionBar
@@ -78,7 +84,7 @@ struct ProjectDetailView: View {
                             .hidden()
                         }
                         if selectedView == "List" {
-                            ForEach(tasksViewModel.tasks) { task in
+                            ForEach(filteredTasks) { task in
                                 NavigationLink {
                                     TaskDetailView(task: task, onTaskUpdated: { updated in
                                         tasksViewModel.upsertTask(updated)
@@ -90,6 +96,10 @@ struct ProjectDetailView: View {
                             }
                         } else if selectedView == "Board" {
                             boardView
+                        } else if selectedView == "Timeline" {
+                            timelineView
+                        } else if selectedView == "Table" {
+                            tableView
                         } else {
                             LLEmptyState(
                                 icon: "square.grid.2x2",
@@ -164,6 +174,7 @@ struct ProjectDetailView: View {
         .task {
             await tasksViewModel.loadTasks(projectId: project.id, force: true)
             await loadStatuses()
+            await usersViewModel.loadUsers()
         }
     }
 
@@ -234,7 +245,7 @@ struct ProjectDetailView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: LLSpacing.sm) {
                         ForEach(statuses.isEmpty ? fallbackStatuses : statuses) { status in
-                            let count = tasksViewModel.tasks.filter { $0.status?.rawValue == status.name }.count
+                            let count = filteredTasks.filter { $0.status?.rawValue == status.name }.count
                             LLCard(style: .standard, padding: .sm) {
                                 VStack(alignment: .leading, spacing: LLSpacing.xs) {
                                     Text(status.name)
@@ -256,6 +267,7 @@ struct ProjectDetailView: View {
             Text("List").tag("List")
             Text("Board").tag("Board")
             Text("Timeline").tag("Timeline")
+            Text("Table").tag("Table")
         }
         .pickerStyle(SegmentedPickerStyle())
     }
@@ -281,7 +293,7 @@ struct ProjectDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: LLSpacing.md) {
                     ForEach(statuses.isEmpty ? fallbackStatuses : statuses) { status in
-                        let columnTasks = tasksViewModel.tasks.filter { $0.status?.rawValue == status.name }
+                        let columnTasks = filteredTasks.filter { $0.status?.rawValue == status.name }
                         VStack(alignment: .leading, spacing: LLSpacing.sm) {
                             columnHeader(status: status, count: columnTasks.count)
 
@@ -323,6 +335,245 @@ struct ProjectDetailView: View {
                 }
                 .padding(.vertical, LLSpacing.sm)
             }
+        }
+    }
+
+    private var filterBar: some View {
+        LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                Text("Search & Filter")
+                    .h4()
+                SearchBarView(placeholder: "Search tasks", text: $searchQuery)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: LLSpacing.sm) {
+                        Menu {
+                            Button("All statuses") { selectedStatusFilter = nil }
+                            ForEach(availableStatusNames, id: \.self) { status in
+                                Button(status) { selectedStatusFilter = status }
+                            }
+                        } label: {
+                            filterChipLabel("Status", value: selectedStatusFilter)
+                        }
+
+                        Menu {
+                            Button("All priorities") { selectedPriorityFilter = nil }
+                            ForEach(TaskPriority.allCases, id: \.self) { priority in
+                                Button(priority.rawValue) { selectedPriorityFilter = priority }
+                            }
+                        } label: {
+                            filterChipLabel("Priority", value: selectedPriorityFilter?.rawValue)
+                        }
+
+                        Menu {
+                            Button("All assignees") { selectedAssigneeId = nil }
+                            Button("Unassigned") { selectedAssigneeId = 0 }
+                            ForEach(usersViewModel.users) { user in
+                                Button(user.username) { selectedAssigneeId = user.userId }
+                            }
+                        } label: {
+                            let assigneeName = assigneeFilterLabel()
+                            filterChipLabel("Assignee", value: assigneeName)
+                        }
+
+                        if hasActiveFilters {
+                            LLButton("Clear", style: .ghost, size: .sm) {
+                                searchQuery = ""
+                                selectedStatusFilter = nil
+                                selectedPriorityFilter = nil
+                                selectedAssigneeId = nil
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func filterChipLabel(_ title: String, value: String?) -> some View {
+        HStack(spacing: LLSpacing.xs) {
+            Text(title)
+                .bodySmall()
+            if let value, !value.isEmpty {
+                LLBadge(value, variant: .outline, size: .sm)
+            } else {
+                Text("All")
+                    .bodySmall()
+                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            }
+            Image(systemName: "chevron.down")
+                .font(.caption2)
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+        }
+        .padding(.horizontal, LLSpacing.sm)
+        .padding(.vertical, LLSpacing.xs)
+        .background(LLColors.muted.color(for: colorScheme))
+        .cornerRadius(12)
+    }
+
+    private var hasActiveFilters: Bool {
+        !searchQuery.isEmpty || selectedStatusFilter != nil || selectedPriorityFilter != nil || selectedAssigneeId != nil
+    }
+
+    private func assigneeFilterLabel() -> String? {
+        guard let selectedAssigneeId else { return nil }
+        if selectedAssigneeId == 0 { return "Unassigned" }
+        return usersViewModel.users.first(where: { $0.userId == selectedAssigneeId })?.username ?? "Assignee"
+    }
+
+    private var availableStatusNames: [String] {
+        let list = (statuses.isEmpty ? fallbackStatuses : statuses).map(\.name)
+        return Array(Set(list)).sorted()
+    }
+
+    private var filteredTasks: [TaskItem] {
+        tasksViewModel.tasks.filter { task in
+            if !searchQuery.isEmpty {
+                let query = searchQuery.lowercased()
+                let matchesTitle = task.title.lowercased().contains(query)
+                let matchesDescription = task.description?.lowercased().contains(query) ?? false
+                let matchesTags = task.tags?.lowercased().contains(query) ?? false
+                if !(matchesTitle || matchesDescription || matchesTags) {
+                    return false
+                }
+            }
+
+            if let selectedStatusFilter, task.status?.rawValue != selectedStatusFilter {
+                return false
+            }
+
+            if let selectedPriorityFilter, task.priority != selectedPriorityFilter {
+                return false
+            }
+
+            if let selectedAssigneeId {
+                if selectedAssigneeId == 0 {
+                    if task.assignedUserId != nil {
+                        return false
+                    }
+                } else if task.assignedUserId != selectedAssigneeId {
+                    return false
+                }
+            }
+            return true
+        }
+    }
+
+    @ViewBuilder
+    private var tableView: some View {
+        let priorityWidth: CGFloat = 70
+        let statusWidth: CGFloat = 90
+        let dueWidth: CGFloat = 70
+
+        LLCard(style: .standard) {
+            VStack(spacing: LLSpacing.sm) {
+                HStack {
+                    Text("Task")
+                        .captionText()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .layoutPriority(1)
+                    Text("Priority")
+                        .captionText()
+                        .frame(width: priorityWidth, alignment: .leading)
+                    Text("Status")
+                        .captionText()
+                        .frame(width: statusWidth, alignment: .leading)
+                    Text("Due")
+                        .captionText()
+                        .frame(width: dueWidth, alignment: .leading)
+                }
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+
+                Divider()
+                    .background(LLColors.muted.color(for: colorScheme))
+
+                ForEach(filteredTasks) { task in
+                    Button {
+                        openTask(task, edit: false)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: LLSpacing.xs) {
+                                Text(task.title)
+                                    .bodyText()
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                if let description = task.description, !description.isEmpty {
+                                    Text(description)
+                                        .bodySmall()
+                                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .layoutPriority(1)
+                            Text(task.priority?.rawValue ?? "—")
+                                .bodySmall()
+                                .frame(width: priorityWidth, alignment: .leading)
+                            Text(task.status?.rawValue ?? "—")
+                                .bodySmall()
+                                .frame(width: statusWidth, alignment: .leading)
+                            Text(formattedDueDate(task) ?? "—")
+                                .bodySmall()
+                                .frame(width: dueWidth, alignment: .leading)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Divider()
+                        .background(LLColors.muted.color(for: colorScheme))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var timelineView: some View {
+        let grouped = Dictionary(grouping: filteredTasks.compactMap { task -> (String, TaskItem)? in
+            guard let due = task.dueDate, let date = parseDate(due) else {
+                return ("Unscheduled", task)
+            }
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM yyyy"
+            return (formatter.string(from: date), task)
+        }, by: { $0.0 })
+
+        if grouped.isEmpty {
+            LLEmptyState(
+                icon: "calendar",
+                title: "No upcoming tasks",
+                message: "Tasks with due dates will show here."
+            )
+        } else {
+            VStack(spacing: LLSpacing.md) {
+            ForEach(grouped.keys.sorted(), id: \.self) { key in
+                let tasks = grouped[key]?.map { $0.1 } ?? []
+                LLCard(style: .standard) {
+                    VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                        Text(key)
+                            .h4()
+                        ForEach(tasks) { task in
+                            HStack(alignment: .top, spacing: LLSpacing.sm) {
+                                VStack(alignment: .leading, spacing: LLSpacing.xs) {
+                                    Text(task.title)
+                                        .bodyText()
+                                    if let due = formattedDueDate(task) {
+                                        Text("Due \(due)")
+                                            .captionText()
+                                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                                    }
+                                }
+                                Spacer()
+                                if let status = task.status {
+                                    LLBadge(status.rawValue, variant: status == .completed ? .success : .outline, size: .sm)
+                                }
+                            }
+                            Divider()
+                                .background(LLColors.muted.color(for: colorScheme))
+                        }
+                    }
+                }
+            }
+        }
         }
     }
 

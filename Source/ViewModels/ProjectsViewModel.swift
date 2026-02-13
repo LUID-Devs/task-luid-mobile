@@ -13,10 +13,18 @@ class ProjectsViewModel: ObservableObject {
 
     private let projectService = ProjectService.shared
     private var hasLoadedOnce = false
+    private var lastLoadedAt: Date? = nil
+    private var lastLoadedUserId: Int? = nil
+    private let minRefreshInterval: TimeInterval = 5
 
-    func loadProjects() async {
-        if isLoading || hasLoadedOnce {
-            return
+    func loadProjects(userId: Int? = nil, force: Bool = false) async {
+        if !force {
+            if isLoading || hasLoadedOnce {
+                return
+            }
+            if let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) < minRefreshInterval {
+                return
+            }
         }
         isLoading = true
         errorMessage = nil
@@ -25,12 +33,16 @@ class ProjectsViewModel: ObservableObject {
         if AppConfig.useMockData {
             projects = MockData.projects
             hasLoadedOnce = true
+            lastLoadedAt = Date()
+            lastLoadedUserId = userId
             return
         }
 
         do {
-            projects = try await projectService.getProjects()
+            projects = try await projectService.getProjects(userId: userId)
             hasLoadedOnce = true
+            lastLoadedAt = Date()
+            lastLoadedUserId = userId
         } catch {
             errorMessage = error.localizedDescription
         }

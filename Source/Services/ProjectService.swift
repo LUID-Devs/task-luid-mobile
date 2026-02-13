@@ -9,6 +9,9 @@ import Foundation
 class ProjectService {
     static let shared = ProjectService()
     private let client = APIClient.shared
+    private struct ProjectFavoriteResponse: Codable {
+        let message: String?
+    }
 
     private init() {}
 
@@ -62,5 +65,15 @@ class ProjectService {
 
     func reorderProjectStatuses(projectId: Int, statusIds: [Int]) async throws -> [ProjectStatus] {
         return try await client.post(APIEndpoint.projectStatusesReorder(projectId), parameters: ["statusIds": statusIds])
+    }
+
+    func favoriteProject(projectId: Int, userId: Int) async throws {
+        let params: [String: Any] = ["userId": userId]
+        let _: ProjectFavoriteResponse = try await client.post(APIEndpoint.projectFavorite(projectId), parameters: params)
+    }
+
+    func unfavoriteProject(projectId: Int, userId: Int) async throws {
+        let params: [String: Any] = ["userId": userId]
+        let _: ProjectFavoriteResponse = try await client.delete(APIEndpoint.projectFavorite(projectId), parameters: params)
     }
 }

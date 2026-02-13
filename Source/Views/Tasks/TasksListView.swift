@@ -12,6 +12,10 @@ struct TasksListView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var searchText = ""
     @State private var selectedFilter = "Assigned"
+    @State private var viewMode = "List"
+    @State private var statusFilter: String? = nil
+    @State private var priorityFilter: TaskPriority? = nil
+    @State private var sortBy = "Priority"
     @State private var selectedTaskIds: Set<Int> = []
     @State private var showDeleteConfirm = false
     @State private var isDeletingSelected = false
@@ -50,29 +54,43 @@ struct TasksListView: View {
                             LLBadge(debug, variant: .outline, size: .sm)
                         }
                         SearchBarView(placeholder: "Search tasks", text: $searchText)
+                        filterBar
                         filterChips
+                        viewToggleRow
                         if !selectedTaskIds.isEmpty {
                             selectionBar
                             if let selectionError {
                                 InlineErrorView(message: selectionError)
                             }
                         }
-                        ForEach(viewModel.tasks) { task in
-                            NavigationLink {
-                                TaskDetailView(task: task, onTaskUpdated: { updated in
-                                    viewModel.upsertTask(updated)
-                                })
-                            } label: {
-                                TaskRowView(
-                                    task: task,
-                                    showsSelection: true,
-                                    isSelected: selectedTaskIds.contains(task.id),
-                                    onSelectToggle: {
-                                        toggleSelection(for: task.id)
+                        if filteredTasks.isEmpty {
+                            LLEmptyState(
+                                icon: "checklist",
+                                title: "No matching tasks",
+                                message: "Try adjusting your filters."
+                            )
+                        } else {
+                            if viewMode == "Table" {
+                                tableView
+                            } else {
+                                ForEach(filteredTasks) { task in
+                                    NavigationLink {
+                                        TaskDetailView(task: task, onTaskUpdated: { updated in
+                                            viewModel.upsertTask(updated)
+                                        })
+                                    } label: {
+                                        TaskRowView(
+                                            task: task,
+                                            showsSelection: true,
+                                            isSelected: selectedTaskIds.contains(task.id),
+                                            onSelectToggle: {
+                                                toggleSelection(for: task.id)
+                                            }
+                                        )
                                     }
-                                )
+                                    .buttonStyle(PlainButtonStyle())
+                                }
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                     .screenPadding()
@@ -183,6 +201,105 @@ struct TasksListView: View {
         }
     }
 
+    private var filterBar: some View {
+        LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                Text("Search & Filter")
+                    .h4()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: LLSpacing.sm) {
+                        Menu {
+                            Button("Sort by Priority") { sortBy = "Priority" }
+                            Button("Sort by Status") { sortBy = "Status" }
+                            Button("Sort by Due Date") { sortBy = "Due Date" }
+                        } label: {
+                            filterChipLabel("Sort", value: sortBy)
+                        }
+
+                        Menu {
+                            Button("All status") { statusFilter = nil }
+                            ForEach(statusOptions, id: \.self) { status in
+                                Button(status) { statusFilter = status }
+                            }
+                        } label: {
+                            filterChipLabel("Status", value: statusFilter)
+                        }
+
+                        Menu {
+                            Button("All priority") { priorityFilter = nil }
+                            ForEach(TaskPriority.allCases) { priority in
+                                Button(priority.rawValue) { priorityFilter = priority }
+                            }
+                        } label: {
+                            filterChipLabel("Priority", value: priorityFilter?.rawValue)
+                        }
+
+                        if hasActiveFilters {
+                            LLButton("Clear", style: .ghost, size: .sm) {
+                                searchText = ""
+                                statusFilter = nil
+                                priorityFilter = nil
+                                sortBy = "Priority"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var viewToggleRow: some View {
+        HStack(spacing: LLSpacing.sm) {
+            Text("View")
+                .captionText()
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            Button {
+                viewMode = "List"
+            } label: {
+                Image(systemName: "list.bullet")
+                    .foregroundColor(viewMode == "List" ? LLColors.primaryForeground.color(for: colorScheme) : LLColors.foreground.color(for: colorScheme))
+                    .padding(8)
+                    .background(viewMode == "List" ? LLColors.primary.color(for: colorScheme) : LLColors.muted.color(for: colorScheme))
+                    .cornerRadius(10)
+            }
+            Button {
+                viewMode = "Table"
+            } label: {
+                Image(systemName: "tablecells")
+                    .foregroundColor(viewMode == "Table" ? LLColors.primaryForeground.color(for: colorScheme) : LLColors.foreground.color(for: colorScheme))
+                    .padding(8)
+                    .background(viewMode == "Table" ? LLColors.primary.color(for: colorScheme) : LLColors.muted.color(for: colorScheme))
+                    .cornerRadius(10)
+            }
+            Spacer()
+        }
+    }
+
+    private func filterChipLabel(_ title: String, value: String?) -> some View {
+        HStack(spacing: LLSpacing.xs) {
+            Text(title)
+                .bodySmall()
+            if let value, !value.isEmpty {
+                LLBadge(value, variant: .outline, size: .sm)
+            } else {
+                Text("All")
+                    .bodySmall()
+                    .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+            }
+            Image(systemName: "chevron.down")
+                .font(.caption2)
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+        }
+        .padding(.horizontal, LLSpacing.sm)
+        .padding(.vertical, LLSpacing.xs)
+        .background(LLColors.muted.color(for: colorScheme))
+        .cornerRadius(12)
+    }
+
+    private var hasActiveFilters: Bool {
+        !searchText.isEmpty || statusFilter != nil || priorityFilter != nil || sortBy != "Priority"
+    }
+
     private var selectionBar: some View {
         LLCard(style: .standard) {
             VStack(spacing: LLSpacing.sm) {
@@ -230,6 +347,152 @@ struct TasksListView: View {
         guard task.status != .completed,
               let dueDate = parseDate(task.dueDate) else { return false }
         return dueDate < Date()
+    }
+
+    private var filteredTasks: [TaskItem] {
+        let userId = authViewModel.user?.userId
+        let base = viewModel.tasks.filter { task in
+            switch selectedFilter {
+            case "Assigned":
+                return task.assignedUserId == userId
+            case "Created":
+                return task.authorUserId == userId
+            case "Overdue":
+                return isOverdue(task)
+            case "Completed":
+                return task.status == .completed
+            default:
+                return true
+            }
+        }
+
+        let searched = base.filter { task in
+            guard !searchText.isEmpty else { return true }
+            let query = searchText.lowercased()
+            let matchesTitle = task.title.lowercased().contains(query)
+            let matchesDescription = task.description?.lowercased().contains(query) ?? false
+            let matchesTags = task.tags?.lowercased().contains(query) ?? false
+            return matchesTitle || matchesDescription || matchesTags
+        }
+
+        let statusFiltered = searched.filter { task in
+            guard let statusFilter else { return true }
+            return task.status?.rawValue == statusFilter
+        }
+
+        let priorityFiltered = statusFiltered.filter { task in
+            guard let priorityFilter else { return true }
+            return task.priority == priorityFilter
+        }
+
+        return priorityFiltered.sorted { lhs, rhs in
+            switch sortBy {
+            case "Status":
+                return statusOrder(lhs.status) < statusOrder(rhs.status)
+            case "Due Date":
+                return (parseDate(lhs.dueDate) ?? .distantFuture) < (parseDate(rhs.dueDate) ?? .distantFuture)
+            default:
+                return priorityOrder(lhs.priority) < priorityOrder(rhs.priority)
+            }
+        }
+    }
+
+    private func priorityOrder(_ priority: TaskPriority?) -> Int {
+        switch priority {
+        case .urgent: return 0
+        case .high: return 1
+        case .medium: return 2
+        case .low: return 3
+        case .backlog: return 4
+        default: return 5
+        }
+    }
+
+    private func statusOrder(_ status: TaskStatus?) -> Int {
+        switch status {
+        case .toDo: return 0
+        case .workInProgress: return 1
+        case .underReview: return 2
+        case .completed: return 3
+        default: return 4
+        }
+    }
+
+    @ViewBuilder
+    private var tableView: some View {
+        let priorityWidth: CGFloat = 70
+        let statusWidth: CGFloat = 90
+        let dueWidth: CGFloat = 70
+
+        LLCard(style: .standard) {
+            VStack(spacing: LLSpacing.sm) {
+                HStack {
+                    Text("Task")
+                        .captionText()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .layoutPriority(1)
+                    Text("Priority")
+                        .captionText()
+                        .frame(width: priorityWidth, alignment: .leading)
+                    Text("Status")
+                        .captionText()
+                        .frame(width: statusWidth, alignment: .leading)
+                    Text("Due")
+                        .captionText()
+                        .frame(width: dueWidth, alignment: .leading)
+                }
+                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+
+                Divider()
+                    .background(LLColors.muted.color(for: colorScheme))
+
+                ForEach(filteredTasks) { task in
+                    NavigationLink {
+                        TaskDetailView(task: task, onTaskUpdated: { updated in
+                            viewModel.upsertTask(updated)
+                        })
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: LLSpacing.xs) {
+                                Text(task.title)
+                                    .bodyText()
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                if let description = task.description, !description.isEmpty {
+                                    Text(description)
+                                        .bodySmall()
+                                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .layoutPriority(1)
+                            Text(task.priority?.rawValue ?? "—")
+                                .bodySmall()
+                                .frame(width: priorityWidth, alignment: .leading)
+                            Text(task.status?.rawValue ?? "—")
+                                .bodySmall()
+                                .frame(width: statusWidth, alignment: .leading)
+                            Text(formattedDueDate(task) ?? "—")
+                                .bodySmall()
+                                .frame(width: dueWidth, alignment: .leading)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Divider()
+                        .background(LLColors.muted.color(for: colorScheme))
+                }
+            }
+        }
+    }
+
+    private func formattedDueDate(_ task: TaskItem) -> String? {
+        guard let date = parseDate(task.dueDate) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
     }
 
     private func toggleSelection(for taskId: Int) {
