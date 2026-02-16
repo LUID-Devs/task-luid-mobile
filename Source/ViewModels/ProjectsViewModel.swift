@@ -18,13 +18,21 @@ class ProjectsViewModel: ObservableObject {
     private let minRefreshInterval: TimeInterval = 5
 
     func loadProjects(userId: Int? = nil, force: Bool = false) async {
+        if isLoading {
+            return
+        }
+
         if !force {
-            if isLoading || hasLoadedOnce {
+            if hasLoadedOnce && lastLoadedUserId == userId {
                 return
             }
-            if let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) < minRefreshInterval {
+            if let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) < minRefreshInterval, lastLoadedUserId == userId {
                 return
             }
+        }
+
+        guard AppConfig.useMockData || userId != nil else {
+            return
         }
         isLoading = true
         errorMessage = nil

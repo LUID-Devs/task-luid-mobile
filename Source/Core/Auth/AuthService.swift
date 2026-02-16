@@ -209,6 +209,19 @@ class AuthService {
         }
     }
 
+    func changePassword(currentPassword: String, newPassword: String) async throws -> ConfirmSignUpResponse {
+        let params: [String: Any] = [
+            "currentPassword": currentPassword,
+            "newPassword": newPassword
+        ]
+
+        do {
+            return try await client.post(APIEndpoint.changePassword, parameters: params, requiresAuth: true)
+        } catch let error as APIError {
+            throw mapAPIError(error)
+        }
+    }
+
     func logout() async {
         do {
             let _: ConfirmSignUpResponse = try await client.post(APIEndpoint.logout, requiresAuth: true)

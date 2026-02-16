@@ -57,6 +57,7 @@ enum APIEndpoint {
     static let confirmSignUp = "/auth/confirm-signup"
     static let respondToChallenge = "/auth/respond-to-challenge"
     static let logout = "/auth/logout"
+    static let changePassword = "/auth/change-password"
 
     // MARK: - Projects
     static let projects = "/projects"
@@ -105,9 +106,36 @@ enum APIEndpoint {
     static func userByCognitoId(_ cognitoId: String) -> String {
         "/users/\(cognitoId)"
     }
+    static func userProfile(_ userId: Int) -> String {
+        "/users/\(userId)/profile"
+    }
+
+    // MARK: - Organizations
+    static func organizationMembers(_ organizationId: Int) -> String {
+        "/organizations/\(organizationId)/members"
+    }
+    static func organizationMember(_ organizationId: Int, userId: Int) -> String {
+        "/organizations/\(organizationId)/members/\(userId)"
+    }
+    static func organizationInvites(_ organizationId: Int) -> String {
+        "/organizations/\(organizationId)/invites"
+    }
+    static let organizationMyInvites = "/organizations/my-invites"
+    static func organizationAcceptInvite(_ token: String) -> String {
+        "/organizations/invites/\(token)/accept"
+    }
+    static func organization(_ organizationId: Int) -> String {
+        "/organizations/\(organizationId)"
+    }
+    static func organizationLeave(_ organizationId: Int) -> String {
+        "/organizations/\(organizationId)/leave"
+    }
 
     // MARK: - Teams
     static let teams = "/teams"
+
+    // MARK: - Credits
+    static let subscriptionStatus = "/credits/subscription-status"
 
     // MARK: - Search
     static let search = "/search"

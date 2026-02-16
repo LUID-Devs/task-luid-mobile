@@ -88,6 +88,9 @@ struct ProjectsListView: View {
         .onAppear {
             startInitialLoad()
         }
+        .onChange(of: authViewModel.user?.userId) { _ in
+            startInitialLoad()
+        }
     }
 
     private var headerRow: some View {
@@ -364,6 +367,7 @@ struct ProjectsListView: View {
 
     private func startInitialLoad() {
         guard !didInitialLoad, !isInitialLoading else { return }
+        guard authViewModel.user?.userId != nil else { return }
         isInitialLoading = true
         Task {
             await viewModel.loadProjects(userId: authViewModel.user?.userId)
