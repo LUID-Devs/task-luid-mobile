@@ -6,6 +6,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E5F60718293A4B5C6D7E8F90 /* Models/OrganizationAuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D5E6F718293A4B5C6D7E8F /* Models/OrganizationAuditLog.swift */; };
+		C3D4E5F60718293A4B5C6D7E /* Models/AIParsedTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2C3D4E5F60718293A4B5C6D /* Models/AIParsedTask.swift */; };
+		D4E5F60718293A4B5C6D7E8F /* Services/AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3D4E5F60718293A4B5C6D7E /* Services/AIService.swift */; };
 		A1B2C3D4E5F60718293A4B5D /* Models/SubscriptionStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6F3CDE0B5A4A1E8DA59C77 /* Models/SubscriptionStatus.swift */; };
 		B2C3D4E5F60718293A4B5C6 /* Services/CreditsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B7E4DFE1C6B4B2F9EB6AD88 /* Services/CreditsService.swift */; };
 		4E5F60718293A4B5C6D7E8F9 /* Models/OrganizationMember.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0B1C2D3E4F5061728394A5 /* Models/OrganizationMember.swift */; };
@@ -150,6 +153,9 @@
 		3D4E5F60718293A4B5C6D7E8 /* ViewModels/OrganizationMembersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels/OrganizationMembersViewModel.swift; sourceTree = "<group>"; };
 		8A6F3CDE0B5A4A1E8DA59C77 /* Models/SubscriptionStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/SubscriptionStatus.swift; sourceTree = "<group>"; };
 		9B7E4DFE1C6B4B2F9EB6AD88 /* Services/CreditsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CreditsService.swift; sourceTree = "<group>"; };
+		A2C3D4E5F60718293A4B5C6D /* Models/AIParsedTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/AIParsedTask.swift; sourceTree = "<group>"; };
+		B3D4E5F60718293A4B5C6D7E /* Services/AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AIService.swift; sourceTree = "<group>"; };
+		C4D5E6F718293A4B5C6D7E8F /* Models/OrganizationAuditLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/OrganizationAuditLog.swift; sourceTree = "<group>"; };
 		4BE35D2C837146D4B041DF75 /* Views/Auth/AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/AuthenticationView.swift; sourceTree = "<group>"; };
 		BDCDF29A647C45839C8381D4 /* Views/Auth/ChallengeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/ChallengeView.swift; sourceTree = "<group>"; };
 		C5F9B3A5A9C94E87830B6213 /* Views/Auth/ConfirmSignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/Auth/ConfirmSignUpView.swift; sourceTree = "<group>"; };
@@ -237,6 +243,8 @@
 				9A0B1C2D3E4F5061728394A5 /* Models/OrganizationMember.swift */,
 				1B2C3D4E5F60718293A4B5C6 /* Models/OrganizationInvite.swift */,
 				8A6F3CDE0B5A4A1E8DA59C77 /* Models/SubscriptionStatus.swift */,
+				A2C3D4E5F60718293A4B5C6D /* Models/AIParsedTask.swift */,
+				C4D5E6F718293A4B5C6D7E8F /* Models/OrganizationAuditLog.swift */,
 				256E0339F9FE4DF2A244151D /* Models/Project.swift */,
 				44678BD5CDF74F2893E907FC /* Models/ProjectStatus.swift */,
 				63CF215B525F4F4A931A750D /* Models/TaskItem.swift */,
@@ -254,6 +262,7 @@
 				FD01798466A54920B1624629 /* Services/MissionControlService.swift */,
 				2C3D4E5F60718293A4B5C6D7 /* Services/OrganizationService.swift */,
 				9B7E4DFE1C6B4B2F9EB6AD88 /* Services/CreditsService.swift */,
+				B3D4E5F60718293A4B5C6D7E /* Services/AIService.swift */,
 				4C077D05ABF84F92B413AC29 /* Services/CommentService.swift */,
 				F4366965B5954FA4AF8564CD /* Services/AttachmentService.swift */,
 				F684B050B316448DA5218D51 /* TaskLuidApp.swift */,
@@ -435,6 +444,9 @@
 				C09788E524CE4932818D025F /* C09788E524CE4932818D025F in Sources */,
 				A1B2C3D4E5F60718293A4B5D /* Models/SubscriptionStatus.swift in Sources */,
 				B2C3D4E5F60718293A4B5C6 /* Services/CreditsService.swift in Sources */,
+				C3D4E5F60718293A4B5C6D7E /* Models/AIParsedTask.swift in Sources */,
+				D4E5F60718293A4B5C6D7E8F /* Services/AIService.swift in Sources */,
+				E5F60718293A4B5C6D7E8F90 /* Models/OrganizationAuditLog.swift in Sources */,
 				4E5F60718293A4B5C6D7E8F9 /* Models/OrganizationMember.swift in Sources */,
 				5F60718293A4B5C6D7E8F901 /* Models/OrganizationInvite.swift in Sources */,
 				60718293A4B5C6D7E8F901A2 /* Services/OrganizationService.swift in Sources */,

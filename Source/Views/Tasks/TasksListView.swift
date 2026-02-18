@@ -70,9 +70,9 @@ struct TasksListView: View {
                                 message: "Try adjusting your filters."
                             )
                         } else {
-                            if viewMode == "Table" {
-                                tableView
-                            } else {
+                        if viewMode == "Table" {
+                            tableView
+                        } else {
                                 ForEach(filteredTasks) { task in
                                     NavigationLink {
                                         TaskDetailView(task: task, onTaskUpdated: { updated in
@@ -420,6 +420,7 @@ struct TasksListView: View {
 
     @ViewBuilder
     private var tableView: some View {
+        let selectWidth: CGFloat = 24
         let priorityWidth: CGFloat = 70
         let statusWidth: CGFloat = 90
         let dueWidth: CGFloat = 70
@@ -427,6 +428,15 @@ struct TasksListView: View {
         LLCard(style: .standard) {
             VStack(spacing: LLSpacing.sm) {
                 HStack {
+                    Button {
+                        toggleSelectAll()
+                    } label: {
+                        Image(systemName: allVisibleSelected ? "checkmark.square.fill" : "square")
+                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                    }
+                    .buttonStyle(BorderlessButtonStyle())
+                    .frame(width: selectWidth, alignment: .leading)
+
                     Text("Task")
                         .captionText()
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -453,6 +463,15 @@ struct TasksListView: View {
                         })
                     } label: {
                         HStack {
+                            Button {
+                                toggleSelection(for: task.id)
+                            } label: {
+                                Image(systemName: selectedTaskIds.contains(task.id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(selectedTaskIds.contains(task.id) ? LLColors.foreground.color(for: colorScheme) : LLColors.mutedForeground.color(for: colorScheme))
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                            .frame(width: selectWidth, alignment: .leading)
+
                             VStack(alignment: .leading, spacing: LLSpacing.xs) {
                                 Text(task.title)
                                     .bodyText()
@@ -503,6 +522,18 @@ struct TasksListView: View {
         }
     }
 
+    private var allVisibleSelected: Bool {
+        !filteredTasks.isEmpty && filteredTasks.allSatisfy { selectedTaskIds.contains($0.id) }
+    }
+
+    private func toggleSelectAll() {
+        if allVisibleSelected {
+            filteredTasks.forEach { selectedTaskIds.remove($0.id) }
+        } else {
+            filteredTasks.forEach { selectedTaskIds.insert($0.id) }
+        }
+    }
+
     private func startInitialLoad(userId: Int) {
         guard !didInitialLoad, !isInitialLoading else { return }
         isInitialLoading = true
@@ -522,15 +553,12 @@ struct TasksListView: View {
         defer { isDeletingSelected = false }
 
         let ids = Array(selectedTaskIds)
-        for taskId in ids {
-            do {
-                _ = try await TaskService.shared.deleteTask(taskId: taskId)
-                viewModel.tasks.removeAll { $0.id == taskId }
-                selectedTaskIds.remove(taskId)
-            } catch {
-                selectionError = error.localizedDescription
-                break
-            }
+        do {
+            _ = try await TaskService.shared.bulkDelete(taskIds: ids)
+            viewModel.tasks.removeAll { selectedTaskIds.contains($0.id) }
+            selectedTaskIds.removeAll()
+        } catch {
+            selectionError = error.localizedDescription
         }
     }
 
@@ -546,9 +574,10 @@ struct TasksListView: View {
         selectionError = nil
         defer { isBulkUpdating = false }
 
-        for taskId in selectedTaskIds {
-            do {
-                _ = try await TaskService.shared.updateTaskStatus(taskId: taskId, statusName: status)
+        let ids = Array(selectedTaskIds)
+        do {
+            _ = try await TaskService.shared.bulkUpdateStatus(taskIds: ids, status: status)
+            for taskId in ids {
                 if let index = viewModel.tasks.firstIndex(where: { $0.id == taskId }) {
                     let task = viewModel.tasks[index]
                     viewModel.tasks[index] = TaskItem(
@@ -572,10 +601,9 @@ struct TasksListView: View {
                         attachments: task.attachments
                     )
                 }
-            } catch {
-                selectionError = error.localizedDescription
-                break
             }
+        } catch {
+            selectionError = error.localizedDescription
         }
     }
 
@@ -587,46 +615,35 @@ struct TasksListView: View {
 
         let assignee = usersViewModel.users.first { $0.userId == userId }
 
-        for taskId in selectedTaskIds {
-            guard let index = viewModel.tasks.firstIndex(where: { $0.id == taskId }) else { continue }
-            let task = viewModel.tasks[index]
-            do {
-                let updated = try await TaskService.shared.updateTask(
-                    taskId: task.id,
+        let ids = Array(selectedTaskIds)
+        do {
+            _ = try await TaskService.shared.bulkAssign(taskIds: ids, assignedUserId: userId)
+            for taskId in ids {
+                guard let index = viewModel.tasks.firstIndex(where: { $0.id == taskId }) else { continue }
+                let task = viewModel.tasks[index]
+                viewModel.tasks[index] = TaskItem(
+                    id: task.id,
                     title: task.title,
                     description: task.description,
-                    status: task.status?.rawValue,
+                    descriptionImageUrl: task.descriptionImageUrl,
+                    status: task.status,
                     priority: task.priority,
+                    taskType: task.taskType,
                     tags: task.tags,
                     startDate: task.startDate,
                     dueDate: task.dueDate,
                     points: task.points,
-                    assignedUserId: userId
-                )
-                viewModel.tasks[index] = TaskItem(
-                    id: updated.id,
-                    title: updated.title,
-                    description: updated.description,
-                    descriptionImageUrl: updated.descriptionImageUrl,
-                    status: updated.status ?? task.status,
-                    priority: updated.priority ?? task.priority,
-                    taskType: updated.taskType ?? task.taskType,
-                    tags: updated.tags ?? task.tags,
-                    startDate: updated.startDate ?? task.startDate,
-                    dueDate: updated.dueDate ?? task.dueDate,
-                    points: updated.points ?? task.points,
-                    projectId: updated.projectId,
-                    authorUserId: updated.authorUserId ?? task.authorUserId,
+                    projectId: task.projectId,
+                    authorUserId: task.authorUserId,
                     assignedUserId: userId,
-                    author: updated.author ?? task.author,
+                    author: task.author,
                     assignee: assignee,
                     comments: task.comments,
                     attachments: task.attachments
                 )
-            } catch {
-                selectionError = error.localizedDescription
-                break
             }
+        } catch {
+            selectionError = error.localizedDescription
         }
     }
 

@@ -110,4 +110,36 @@ class TaskService {
     func deleteTask(taskId: Int) async throws -> DeleteResponse {
         return try await client.delete(APIEndpoint.task(taskId))
     }
+
+    func bulkUpdateStatus(taskIds: [Int], status: String) async throws -> BulkActionResponse {
+        let params: [String: Any] = [
+            "taskIds": taskIds,
+            "status": status
+        ]
+        return try await client.post(APIEndpoint.tasksBulkStatus, parameters: params)
+    }
+
+    func bulkAssign(taskIds: [Int], assignedUserId: Int?) async throws -> BulkActionResponse {
+        let params: [String: Any] = [
+            "taskIds": taskIds,
+            "assignedUserId": assignedUserId as Any
+        ]
+        return try await client.post(APIEndpoint.tasksBulkAssign, parameters: params)
+    }
+
+    func bulkDelete(taskIds: [Int]) async throws -> BulkActionResponse {
+        let params: [String: Any] = [
+            "taskIds": taskIds
+        ]
+        return try await client.post(APIEndpoint.tasksBulkDelete, parameters: params)
+    }
+}
+
+struct BulkActionResponse: Codable {
+    let success: Bool?
+    let message: String?
+    let updatedCount: Int?
+    let deletedCount: Int?
+    let archivedCount: Int?
+    let assignedUserId: Int?
 }

@@ -16,6 +16,8 @@ struct UsersView: View {
     @State private var showInviteSheet = false
     @State private var selectedMember: OrganizationMember? = nil
     @State private var showRoleDialog = false
+    @State private var showRemoveDialog = false
+    @State private var memberToRemove: OrganizationMember? = nil
     @State private var inviteEmail = ""
     @State private var inviteRole = "member"
     @State private var inviteMessage = ""
@@ -31,12 +33,18 @@ struct UsersView: View {
                 if let inviteError = viewModel.inviteErrorMessage {
                     InlineErrorView(message: inviteError)
                 }
+                if let auditError = viewModel.auditErrorMessage {
+                    InlineErrorView(message: auditError)
+                }
 
                 if !viewModel.invites.isEmpty {
                     invitesSection
                 }
+                if canManageMembers && !viewModel.pendingInvites.isEmpty {
+                    pendingInvitesSection
+                }
 
-                if viewModel.isLoading || viewModel.isInvitesLoading {
+                if viewModel.isLoading || viewModel.isInvitesLoading || viewModel.isAuditLoading {
                     LLLoadingView("Loading users...")
                 } else if filteredMembers.isEmpty && viewModel.invites.isEmpty {
                     LLEmptyState(
@@ -55,6 +63,9 @@ struct UsersView: View {
                             memberCard(member)
                         }
                     }
+                    if canManageMembers {
+                        auditLogSection
+                    }
                 }
             }
             .screenPadding()
@@ -63,6 +74,10 @@ struct UsersView: View {
         .task(id: organizationId) {
             guard let organizationId else { return }
             await viewModel.loadMembers(organizationId: organizationId)
+            if canManageMembers {
+                await viewModel.loadInvites(organizationId: organizationId)
+                await viewModel.loadAuditLogs(organizationId: organizationId)
+            }
         }
         .task {
             await viewModel.loadMyInvites()
@@ -76,6 +91,14 @@ struct UsersView: View {
         }
         .sheet(isPresented: $showInviteSheet) {
             inviteSheet
+        }
+        .confirmationDialog("Remove member?", isPresented: $showRemoveDialog) {
+            Button("Remove", role: .destructive) {
+                Task { await confirmRemoveMember() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will remove the member from the workspace.")
         }
         .confirmationDialog("Set role", isPresented: $showRoleDialog) {
             ForEach(roleOptions, id: \.self) { role in
@@ -175,6 +198,65 @@ struct UsersView: View {
         }
     }
 
+    private var pendingInvitesSection: some View {
+        LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                Text("Pending Invites")
+                    .h4()
+                ForEach(viewModel.pendingInvites) { invite in
+                    HStack(alignment: .top, spacing: LLSpacing.sm) {
+                        VStack(alignment: .leading, spacing: LLSpacing.xs) {
+                            Text(invite.email)
+                                .bodyText()
+                            Text(invite.role.capitalized)
+                                .bodySmall()
+                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                        }
+                        Spacer()
+                        LLButton("Resend", style: .outline, size: .sm, isLoading: viewModel.isInvitesLoading) {
+                            Task { await resendInvite(invite) }
+                        }
+                        LLButton("Revoke", style: .destructive, size: .sm, isLoading: viewModel.isInvitesLoading) {
+                            Task { await revokeInvite(invite) }
+                        }
+                    }
+                    if invite.id != viewModel.pendingInvites.last?.id {
+                        Divider()
+                            .background(LLColors.muted.color(for: colorScheme))
+                    }
+                }
+            }
+        }
+    }
+
+    private var auditLogSection: some View {
+        LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                Text("Audit Log")
+                    .h4()
+                if viewModel.auditLogs.isEmpty {
+                    Text("No recent activity.")
+                        .bodySmall()
+                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                } else {
+                    ForEach(viewModel.auditLogs.prefix(8)) { log in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(log.action.replacingOccurrences(of: ".", with: " ").capitalized)
+                                .bodySmall()
+                            Text(logSummary(log))
+                                .captionText()
+                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                        }
+                        if log.id != viewModel.auditLogs.prefix(8).last?.id {
+                            Divider()
+                                .background(LLColors.muted.color(for: colorScheme))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var viewToggleRow: some View {
         HStack(spacing: LLSpacing.sm) {
             Text("View")
@@ -233,6 +315,12 @@ struct UsersView: View {
                         selectedMember = member
                         showRoleDialog = true
                     }
+                    if canManageMembers {
+                        LLButton("Remove", style: .destructive, size: .sm) {
+                            memberToRemove = member
+                            showRemoveDialog = true
+                        }
+                    }
                 }
             }
         }
@@ -288,6 +376,13 @@ struct UsersView: View {
                             }
                         }
                         .frame(width: 80, alignment: .leading)
+                        if canManageMembers && !isOwner {
+                            Button("Remove") {
+                                memberToRemove = member
+                                showRemoveDialog = true
+                            }
+                            .frame(width: 80, alignment: .leading)
+                        }
                     }
                     Divider()
                         .background(LLColors.muted.color(for: colorScheme))
@@ -372,6 +467,23 @@ struct UsersView: View {
         )
     }
 
+    private func confirmRemoveMember() async {
+        guard let organizationId,
+              let member = memberToRemove else { return }
+        let _ = await viewModel.removeMember(organizationId: organizationId, userId: member.userId)
+        memberToRemove = nil
+    }
+
+    private func resendInvite(_ invite: OrganizationInvite) async {
+        guard let organizationId else { return }
+        _ = await viewModel.resendInvite(organizationId: organizationId, inviteId: invite.id)
+    }
+
+    private func revokeInvite(_ invite: OrganizationInvite) async {
+        guard let organizationId else { return }
+        _ = await viewModel.revokeInvite(organizationId: organizationId, inviteId: invite.id)
+    }
+
     private func acceptInvite(_ invite: OrganizationInvite) async {
         guard let token = invite.token else {
             viewModel.inviteErrorMessage = "Invite token missing."
@@ -410,6 +522,29 @@ struct UsersView: View {
 
     private var roleOptions: [String] {
         ["admin", "member", "viewer"]
+    }
+
+    private var canManageMembers: Bool {
+        guard let currentUserId = authViewModel.user?.userId else { return false }
+        let role = viewModel.members.first(where: { $0.userId == currentUserId })?.role.lowercased()
+        return role == "owner" || role == "admin"
+    }
+
+    private func logSummary(_ log: OrganizationAuditLog) -> String {
+        let user = log.user?.username ?? "Someone"
+        let resource = log.resourceName ?? log.resourceType
+        return "\(user) • \(resource) • \(formatLogDate(log.createdAt))"
+    }
+
+    private func formatLogDate(_ value: String) -> String {
+        let iso = ISO8601DateFormatter()
+        if let date = iso.date(from: value) {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        return value
     }
 
     private var filteredMembers: [OrganizationMember] {

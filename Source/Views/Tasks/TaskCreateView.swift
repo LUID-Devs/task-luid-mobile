@@ -40,6 +40,8 @@ struct TaskCreateView: View {
     @State private var showAiInput = false
     @State private var aiInput = ""
     @State private var aiError: String? = nil
+    @State private var aiNotice: String? = nil
+    @State private var isAiParsing = false
     @State private var agents: [Agent] = []
     @State private var assignedAgentId: Int? = nil
     @State private var isAssigningAgent = false
@@ -78,8 +80,13 @@ struct TaskCreateView: View {
 
                                 if showAiInput {
                                     LLTextField(title: "AI Input", placeholder: "Describe the task in plain language", text: $aiInput)
-                                    LLButton("Parse with AI", style: .outline, size: .sm) {
-                                        aiError = "AI parsing is not configured yet."
+                                    LLButton("Parse with AI", style: .outline, size: .sm, isLoading: isAiParsing) {
+                                        Task { await parseWithAI() }
+                                    }
+                                    if let aiNotice {
+                                        Text(aiNotice)
+                                            .bodySmall()
+                                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
                                     }
                                     if let aiError {
                                         InlineErrorView(message: aiError)
@@ -301,5 +308,56 @@ struct TaskCreateView: View {
         } catch {
             agents = []
         }
+    }
+
+    private func parseWithAI() async {
+        let trimmed = aiInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            aiError = "AI input is required."
+            return
+        }
+
+        aiError = nil
+        aiNotice = nil
+        isAiParsing = true
+        defer { isAiParsing = false }
+
+        do {
+            let teamMembers = usersViewModel.users.map(\.username)
+            let response = try await AIService.shared.parseTask(text: trimmed, teamMembers: teamMembers)
+            guard response.success == true, let parsed = response.data else {
+                aiError = response.error?.message ?? "Failed to parse task."
+                return
+            }
+
+            if let parsedTitle = parsed.title, !parsedTitle.isEmpty { title = parsedTitle }
+            if let parsedDescription = parsed.description { description = parsedDescription }
+            if let parsedPriority = parsed.priority, let mapped = TaskPriority(rawValue: parsedPriority) {
+                priority = mapped
+            }
+            if let parsedTags = parsed.tags { tags = parsedTags }
+            if let parsedAssignee = parsed.assignee, let match = usersViewModel.users.first(where: {
+                $0.username.lowercased() == parsedAssignee.lowercased()
+            }) {
+                assigneeId = match.userId
+            }
+            if let parsedDueDate = parsed.dueDate, let date = parseISODate(parsedDueDate) {
+                dueDate = date
+            }
+
+            aiNotice = "Task parsed. Review fields before creating."
+        } catch {
+            aiError = error.localizedDescription
+        }
+    }
+
+    private func parseISODate(_ value: String) -> Date? {
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso.date(from: value) {
+            return date
+        }
+        iso.formatOptions = [.withInternetDateTime]
+        return iso.date(from: value)
     }
 }

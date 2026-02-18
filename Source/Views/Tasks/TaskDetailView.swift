@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 import UniformTypeIdentifiers
 
 struct TaskDetailView: View {
@@ -33,6 +34,10 @@ struct TaskDetailView: View {
     @State private var isLoadingComments = false
     @State private var isPostingComment = false
     @State private var commentsError: String? = nil
+    @State private var showCommentImagePicker = false
+    @State private var isUploadingCommentImage = false
+    @State private var commentImageUrl: String? = nil
+    @State private var commentPhotoItem: PhotosPickerItem? = nil
 
     @State private var attachments: [Attachment] = []
     @State private var isLoadingAttachments = false
@@ -185,6 +190,20 @@ struct TaskDetailView: View {
                 }
             case .failure(let error):
                 attachmentsError = error.localizedDescription
+            }
+        }
+        .fileImporter(
+            isPresented: $showCommentImagePicker,
+            allowedContentTypes: [.image],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    Task { await uploadCommentImage(fileURL: url) }
+                }
+            case .failure(let error):
+                commentsError = error.localizedDescription
             }
         }
         .onAppear {
@@ -497,6 +516,24 @@ struct TaskDetailView: View {
                                 .font(LLTypography.caption())
                                 .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
                             }
+                            if let imageUrl = comment.imageUrl, let url = URL(string: imageUrl) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(maxHeight: 160)
+                                            .cornerRadius(10)
+                                    case .failure:
+                                        Text("Image unavailable")
+                                            .bodySmall()
+                                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                                    default:
+                                        ProgressView()
+                                    }
+                                }
+                            }
                             Text(comment.text)
                                 .bodyText()
                                 .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
@@ -506,13 +543,58 @@ struct TaskDetailView: View {
                 }
 
                 LLTextField(title: "Add comment", placeholder: "Write a comment", text: $newCommentText)
+                if let commentImageUrl, let url = URL(string: commentImageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 140)
+                                .cornerRadius(10)
+                        default:
+                            ProgressView()
+                        }
+                    }
+                }
 
                 if let commentsError = commentsError {
                     InlineErrorView(message: commentsError)
                 }
 
-                LLButton("Post Comment", style: .secondary, isLoading: isPostingComment, fullWidth: true) {
+                HStack(spacing: LLSpacing.sm) {
+                    LLButton("Add File", style: .outline, size: .sm, isLoading: isUploadingCommentImage, fullWidth: true) {
+                        showCommentImagePicker = true
+                    }
+                    PhotosPicker(selection: $commentPhotoItem, matching: .images) {
+                        HStack(spacing: LLSpacing.xs) {
+                            Image(systemName: "photo.on.rectangle")
+                            Text("Photos")
+                                .bodySmall()
+                        }
+                        .padding(.horizontal, LLSpacing.sm)
+                        .padding(.vertical, LLSpacing.xs)
+                        .frame(maxWidth: .infinity)
+                        .background(LLColors.muted.color(for: colorScheme))
+                        .cornerRadius(LLSpacing.radiusMD)
+                    }
+                }
+                .onChange(of: commentPhotoItem) { newItem in
+                    guard let newItem else { return }
+                    Task { await handlePhotoSelection(newItem) }
+                }
+                LLButton("Post Comment", style: .secondary, size: .sm, isLoading: isPostingComment, fullWidth: true) {
                     Task { await postComment() }
+                }
+                LLButton("Clear Image", style: .ghost, size: .sm, fullWidth: true) {
+                    commentImageUrl = nil
+                }
+                .disabled(commentImageUrl == nil)
+
+                if commentImageUrl != nil {
+                    Text("Image attached")
+                        .bodySmall()
+                        .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
                 }
             }
         }
@@ -537,6 +619,22 @@ struct TaskDetailView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(attachment.fileName ?? "Attachment")
                                     .bodyText()
+                                let urlString = attachment.presignedUrl ?? attachment.fileURL
+                                if let url = URL(string: urlString),
+                                   isImageFile(url: url) {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(maxHeight: 120)
+                                                .cornerRadius(8)
+                                        default:
+                                            ProgressView()
+                                        }
+                                    }
+                                }
                                 if let url = URL(string: attachment.presignedUrl ?? attachment.fileURL) {
                                     Link("Open", destination: url)
                                         .font(LLTypography.bodySmall())
@@ -645,15 +743,20 @@ struct TaskDetailView: View {
 
     private func postComment() async {
         let trimmed = newCommentText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty || commentImageUrl != nil else { return }
         isPostingComment = true
         commentsError = nil
         defer { isPostingComment = false }
 
         do {
-            let created = try await CommentService.shared.createComment(taskId: taskState.id, text: trimmed)
+            let created = try await CommentService.shared.createComment(
+                taskId: taskState.id,
+                text: trimmed.isEmpty ? nil : trimmed,
+                imageUrl: commentImageUrl
+            )
             comments.insert(created, at: 0)
             newCommentText = ""
+            commentImageUrl = nil
         } catch {
             commentsError = error.localizedDescription
         }
@@ -702,6 +805,43 @@ struct TaskDetailView: View {
         } catch {
             attachmentsError = error.localizedDescription
         }
+    }
+
+    private func uploadCommentImage(fileURL: URL) async {
+        isUploadingCommentImage = true
+        commentsError = nil
+        defer { isUploadingCommentImage = false }
+
+        do {
+            let uploadedUrl = try await CommentService.shared.uploadCommentImage(fileURL: fileURL)
+            commentImageUrl = uploadedUrl
+        } catch {
+            commentsError = error.localizedDescription
+        }
+    }
+
+    private func handlePhotoSelection(_ item: PhotosPickerItem) async {
+        isUploadingCommentImage = true
+        commentsError = nil
+        defer { isUploadingCommentImage = false }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                commentsError = "Unable to read selected photo."
+                return
+            }
+            let filename = "comment-\(UUID().uuidString).jpg"
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try data.write(to: tempURL)
+            let uploadedUrl = try await CommentService.shared.uploadCommentImage(fileURL: tempURL)
+            commentImageUrl = uploadedUrl
+        } catch {
+            commentsError = error.localizedDescription
+        }
+    }
+
+    private func isImageFile(url: URL) -> Bool {
+        ["png", "jpg", "jpeg", "heic", "gif"].contains(url.pathExtension.lowercased())
     }
 
     private func loadAgentsAndAssignments() async {

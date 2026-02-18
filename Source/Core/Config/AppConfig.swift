@@ -100,6 +100,7 @@ enum APIEndpoint {
     static func comment(_ id: Int) -> String {
         "/comments/\(id)"
     }
+    static let commentUploadImage = "/comments/upload-image"
 
     // MARK: - Users
     static let users = "/users"
@@ -120,6 +121,12 @@ enum APIEndpoint {
     static func organizationInvites(_ organizationId: Int) -> String {
         "/organizations/\(organizationId)/invites"
     }
+    static func organizationInvite(_ organizationId: Int, inviteId: Int) -> String {
+        "/organizations/\(organizationId)/invites/\(inviteId)"
+    }
+    static func organizationInviteResend(_ organizationId: Int, inviteId: Int) -> String {
+        "/organizations/\(organizationId)/invites/\(inviteId)/resend"
+    }
     static let organizationMyInvites = "/organizations/my-invites"
     static func organizationAcceptInvite(_ token: String) -> String {
         "/organizations/invites/\(token)/accept"
@@ -129,6 +136,9 @@ enum APIEndpoint {
     }
     static func organizationLeave(_ organizationId: Int) -> String {
         "/organizations/\(organizationId)/leave"
+    }
+    static func organizationAuditLogs(_ organizationId: Int) -> String {
+        "/organizations/\(organizationId)/audit-logs"
     }
 
     // MARK: - Teams
@@ -160,4 +170,12 @@ enum APIEndpoint {
     static func activityFeed(_ organizationId: Int) -> String {
         "/api/organizations/\(organizationId)/activity"
     }
+
+    // MARK: - AI
+    static let aiParseTask = "/api/ai/parse-task"
+
+    // MARK: - Bulk Tasks
+    static let tasksBulkStatus = "/tasks/bulk/status"
+    static let tasksBulkAssign = "/tasks/bulk/assign"
+    static let tasksBulkDelete = "/tasks/bulk/delete"
 }

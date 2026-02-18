@@ -36,6 +36,32 @@ class OrganizationService {
         return response.data ?? []
     }
 
+    func getInvites(organizationId: Int) async throws -> [OrganizationInvite] {
+        let response: SuccessResponse<[OrganizationInvite]> = try await client.get(
+            APIEndpoint.organizationInvites(organizationId)
+        )
+        return response.data ?? []
+    }
+
+    func resendInvite(organizationId: Int, inviteId: Int) async throws -> OrganizationInvite {
+        let response: SuccessResponse<OrganizationInvite> = try await client.post(
+            APIEndpoint.organizationInviteResend(organizationId, inviteId: inviteId),
+            parameters: [:]
+        )
+        guard let invite = response.data else {
+            throw APIError.noData
+        }
+        return invite
+    }
+
+    func revokeInvite(organizationId: Int, inviteId: Int) async throws -> Bool {
+        let response: SuccessResponse<EmptyResponse> = try await client.delete(
+            APIEndpoint.organizationInvite(organizationId, inviteId: inviteId),
+            parameters: [:]
+        )
+        return response.success
+    }
+
     func getOrganization(organizationId: Int) async throws -> Organization {
         let response: SuccessResponse<Organization> = try await client.get(
             APIEndpoint.organization(organizationId)
@@ -92,6 +118,14 @@ class OrganizationService {
         return member
     }
 
+    func removeMember(organizationId: Int, userId: Int) async throws -> Bool {
+        let response: SuccessResponse<EmptyResponse> = try await client.delete(
+            APIEndpoint.organizationMember(organizationId, userId: userId),
+            parameters: [:]
+        )
+        return response.success
+    }
+
     func createInvite(organizationId: Int, email: String, role: String, message: String?) async throws -> OrganizationInvite {
         var params: [String: Any] = ["email": email, "role": role]
         if let message, !message.isEmpty {
@@ -121,6 +155,19 @@ class OrganizationService {
         )
         return (response.data?.organization, response.data?.member)
     }
+
+    func getAuditLogs(organizationId: Int, limit: Int = 20) async throws -> [OrganizationAuditLog] {
+        let response: AuditLogResponse = try await client.get(
+            APIEndpoint.organizationAuditLogs(organizationId),
+            parameters: ["limit": limit]
+        )
+        return response.data ?? []
+    }
 }
 
 private struct EmptyResponse: Codable {}
+
+private struct AuditLogResponse: Codable {
+    let success: Bool?
+    let data: [OrganizationAuditLog]?
+}

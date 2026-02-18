@@ -9,10 +9,14 @@ import Foundation
 class OrganizationMembersViewModel: ObservableObject {
     @Published var members: [OrganizationMember] = []
     @Published var invites: [OrganizationInvite] = []
+    @Published var pendingInvites: [OrganizationInvite] = []
+    @Published var auditLogs: [OrganizationAuditLog] = []
     @Published var isLoading = false
     @Published var isInvitesLoading = false
+    @Published var isAuditLoading = false
     @Published var errorMessage: String? = nil
     @Published var inviteErrorMessage: String? = nil
+    @Published var auditErrorMessage: String? = nil
     @Published var inviteMessage: String? = nil
 
     private let organizationService = OrganizationService.shared
@@ -74,6 +78,68 @@ class OrganizationMembersViewModel: ObservableObject {
         }
     }
 
+    func loadInvites(organizationId: Int) async {
+        if isInvitesLoading {
+            return
+        }
+        isInvitesLoading = true
+        inviteErrorMessage = nil
+        defer { isInvitesLoading = false }
+
+        do {
+            pendingInvites = try await organizationService.getInvites(organizationId: organizationId)
+        } catch {
+            inviteErrorMessage = error.localizedDescription
+        }
+    }
+
+    func resendInvite(organizationId: Int, inviteId: Int) async -> Bool {
+        isInvitesLoading = true
+        inviteErrorMessage = nil
+        defer { isInvitesLoading = false }
+
+        do {
+            let updated = try await organizationService.resendInvite(organizationId: organizationId, inviteId: inviteId)
+            if let index = pendingInvites.firstIndex(where: { $0.id == updated.id }) {
+                pendingInvites[index] = updated
+            }
+            return true
+        } catch {
+            inviteErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func revokeInvite(organizationId: Int, inviteId: Int) async -> Bool {
+        isInvitesLoading = true
+        inviteErrorMessage = nil
+        defer { isInvitesLoading = false }
+
+        do {
+            _ = try await organizationService.revokeInvite(organizationId: organizationId, inviteId: inviteId)
+            pendingInvites.removeAll { $0.id == inviteId }
+            return true
+        } catch {
+            inviteErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func removeMember(organizationId: Int, userId: Int) async -> Bool {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            _ = try await organizationService.removeMember(organizationId: organizationId, userId: userId)
+            members.removeAll { $0.userId == userId }
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func loadMyInvites() async {
         if isInvitesLoading {
             return
@@ -104,6 +170,21 @@ class OrganizationMembersViewModel: ObservableObject {
         } catch {
             inviteErrorMessage = error.localizedDescription
             return false
+        }
+    }
+
+    func loadAuditLogs(organizationId: Int) async {
+        if isAuditLoading {
+            return
+        }
+        isAuditLoading = true
+        auditErrorMessage = nil
+        defer { isAuditLoading = false }
+
+        do {
+            auditLogs = try await organizationService.getAuditLogs(organizationId: organizationId)
+        } catch {
+            auditErrorMessage = error.localizedDescription
         }
     }
 }

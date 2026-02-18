@@ -25,6 +25,7 @@ struct ProjectDetailView: View {
     @State private var statusName = ""
     @State private var isSavingStatus = false
     @State private var statusToDelete: ProjectStatus? = nil
+    @State private var showStatusManager = false
     @State private var taskToDelete: TaskItem? = nil
     @State private var navigationTask: TaskItem? = nil
     @State private var navigationTaskEditMode = false
@@ -146,6 +147,9 @@ struct ProjectDetailView: View {
         }
         .sheet(item: $statusSheetMode) { mode in
             statusEditorSheet(mode: mode)
+        }
+        .sheet(isPresented: $showStatusManager) {
+            statusManagerSheet
         }
         .alert("Delete Task", isPresented: Binding(get: {
             taskToDelete != nil
@@ -277,7 +281,9 @@ struct ProjectDetailView: View {
             LLButton("New task", style: .primary, size: .sm, fullWidth: true) {
                 showCreateTask = true
             }
-            LLButton("Statuses", style: .outline, size: .sm, fullWidth: true) {}
+            LLButton("Statuses", style: .outline, size: .sm, fullWidth: true) {
+                showStatusManager = true
+            }
             LLButton("Members", style: .outline, size: .sm, fullWidth: true) {}
         }
     }
@@ -781,6 +787,67 @@ struct ProjectDetailView: View {
         .screenPadding()
     }
 
+    private var statusManagerSheet: some View {
+        NavigationStack {
+            VStack(spacing: LLSpacing.md) {
+                if let statusActionError {
+                    InlineErrorView(message: statusActionError)
+                }
+                if statuses.isEmpty {
+                    LLEmptyState(
+                        icon: "rectangle.stack",
+                        title: "No statuses",
+                        message: "Add a status to start organizing tasks."
+                    )
+                } else {
+                    List {
+                        ForEach(statuses) { status in
+                            HStack(spacing: LLSpacing.sm) {
+                                Text(status.name)
+                                    .bodyText()
+                                Spacer()
+                                LLBadge(status.isDefault ? "Default" : status.name, variant: .outline, size: .sm)
+                            }
+                            .contentShape(Rectangle())
+                            .contextMenu {
+                                Button("Edit") {
+                                    statusName = status.name
+                                    statusSheetMode = .edit(status)
+                                }
+                                if !status.isDefault {
+                                    Button("Delete", role: .destructive) {
+                                        statusToDelete = status
+                                    }
+                                }
+                            }
+                        }
+                        .onMove { indices, newOffset in
+                            Task { await reorderStatuses(from: indices, to: newOffset) }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+
+                LLButton("Add Status", style: .primary, size: .sm, fullWidth: true) {
+                    statusName = ""
+                    statusSheetMode = .add
+                }
+            }
+            .screenPadding()
+            .navigationTitle("Statuses")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EditButton()
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") {
+                        showStatusManager = false
+                    }
+                }
+            }
+        }
+    }
+
     private func modeTitle(_ mode: StatusSheetMode) -> String {
         switch mode {
         case .add: return "Add Status"
@@ -887,6 +954,19 @@ struct ProjectDetailView: View {
         reordered.swapAt(index, newIndex)
         let statusIds = reordered.map(\.id)
 
+        statusActionError = nil
+        do {
+            let updated = try await ProjectService.shared.reorderProjectStatuses(projectId: project.id, statusIds: statusIds)
+            statuses = updated.sorted { $0.order < $1.order }
+        } catch {
+            statusActionError = error.localizedDescription
+        }
+    }
+
+    private func reorderStatuses(from offsets: IndexSet, to destination: Int) async {
+        var reordered = statuses
+        reordered.move(fromOffsets: offsets, toOffset: destination)
+        let statusIds = reordered.map(\.id)
         statusActionError = nil
         do {
             let updated = try await ProjectService.shared.reorderProjectStatuses(projectId: project.id, statusIds: statusIds)
