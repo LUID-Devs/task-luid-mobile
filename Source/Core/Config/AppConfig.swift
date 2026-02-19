@@ -140,6 +140,8 @@ enum APIEndpoint {
     static func organizationAuditLogs(_ organizationId: Int) -> String {
         "/organizations/\(organizationId)/audit-logs"
     }
+    static let organizations = "/organizations"
+    static let organizationSwitch = "/organizations/switch"
 
     // MARK: - Teams
     static let teams = "/teams"

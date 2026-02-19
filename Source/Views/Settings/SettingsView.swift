@@ -32,6 +32,12 @@ struct SettingsView: View {
     @State private var inviteNotice: String? = nil
     @State private var inviteError: String? = nil
 
+    @State private var organizations: [Organization] = []
+    @State private var selectedOrganizationId: Int? = nil
+    @State private var workspaceNotice: String? = nil
+    @State private var workspaceError: String? = nil
+    @State private var isSwitchingWorkspace = false
+
     @State private var subscriptionStatus: SubscriptionStatus? = nil
     @State private var isLoading = false
     @State private var isOrgLoading = false
@@ -45,6 +51,7 @@ struct SettingsView: View {
                 profileSection
                 passwordSection
                 workspaceSection
+                workspaceSwitcherSection
                 inviteSection
                 subscriptionSection
 
@@ -133,6 +140,42 @@ struct SettingsView: View {
         }
     }
 
+    private var workspaceSwitcherSection: some View {
+        LLCard(style: .standard) {
+            VStack(alignment: .leading, spacing: LLSpacing.sm) {
+                Text("Workspace Switcher")
+                    .h4()
+                if let workspaceNotice {
+                    noticeView(message: workspaceNotice)
+                }
+                if let workspaceError {
+                    InlineErrorView(message: workspaceError)
+                }
+                Menu {
+                    ForEach(organizations) { org in
+                        Button(org.name) { selectedOrganizationId = org.id }
+                    }
+                } label: {
+                    HStack(spacing: LLSpacing.xs) {
+                        Text(selectedOrganizationName)
+                            .bodyText()
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                    }
+                    .padding(.horizontal, LLSpacing.sm)
+                    .padding(.vertical, LLSpacing.xs)
+                    .background(LLColors.muted.color(for: colorScheme))
+                    .cornerRadius(12)
+                }
+                LLButton("Switch Workspace", style: .outline, size: .sm, isLoading: isSwitchingWorkspace, fullWidth: true) {
+                    Task { await switchWorkspace() }
+                }
+            }
+        }
+    }
+
     private var inviteSection: some View {
         LLCard(style: .standard) {
             VStack(alignment: .leading, spacing: LLSpacing.sm) {
@@ -197,6 +240,31 @@ struct SettingsView: View {
                             .bodySmall()
                             .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
                     }
+                    if let features = status.features, !features.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(features.keys.sorted(), id: \.self) { key in
+                                let enabled = features[key] ?? false
+                                HStack(spacing: LLSpacing.xs) {
+                                    Image(systemName: enabled ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                        .foregroundColor(enabled ? LLColors.success.color(for: colorScheme) : LLColors.mutedForeground.color(for: colorScheme))
+                                    Text(key.replacingOccurrences(of: "_", with: " ").capitalized)
+                                        .bodySmall()
+                                }
+                            }
+                        }
+                    }
+                    HStack(spacing: LLSpacing.sm) {
+                        if let manageURL = URL(string: AppConfig.webBaseURL + "/settings") {
+                            Link("Manage Billing", destination: manageURL)
+                                .font(LLTypography.bodySmall())
+                                .foregroundColor(LLColors.primary.color(for: colorScheme))
+                        }
+                        if let upgradeURL = URL(string: AppConfig.webBaseURL + "/pricing") {
+                            Link("Upgrade Plan", destination: upgradeURL)
+                                .font(LLTypography.bodySmall())
+                                .foregroundColor(LLColors.primary.color(for: colorScheme))
+                        }
+                    }
                 } else {
                     Text("Subscription details unavailable.")
                         .bodySmall()
@@ -224,6 +292,15 @@ struct SettingsView: View {
             } catch {
                 orgError = error.localizedDescription
             }
+        }
+
+        do {
+            organizations = try await OrganizationService.shared.getOrganizations()
+            if selectedOrganizationId == nil {
+                selectedOrganizationId = organizationId
+            }
+        } catch {
+            workspaceError = error.localizedDescription
         }
 
         do {
@@ -320,6 +397,25 @@ struct SettingsView: View {
         }
     }
 
+    private func switchWorkspace() async {
+        guard let selected = selectedOrganizationId else { return }
+        workspaceNotice = nil
+        workspaceError = nil
+        isSwitchingWorkspace = true
+        defer { isSwitchingWorkspace = false }
+
+        do {
+            let org = try await OrganizationService.shared.switchWorkspace(organizationId: selected)
+            _ = KeychainManager.shared.saveActiveOrganizationId(String(org.id))
+            workspaceNotice = "Switched to \(org.name)."
+            orgName = org.name
+            orgDescription = org.description ?? ""
+            orgDomain = org.domain ?? ""
+        } catch {
+            workspaceError = error.localizedDescription
+        }
+    }
+
     private func sendInvite() async {
         guard let organizationId else {
             inviteError = "Workspace not available."
@@ -371,5 +467,13 @@ struct SettingsView: View {
             return parsed
         }
         return nil
+    }
+
+    private var selectedOrganizationName: String {
+        if let selectedOrganizationId,
+           let org = organizations.first(where: { $0.id == selectedOrganizationId }) {
+            return org.name
+        }
+        return "Select workspace"
     }
 }

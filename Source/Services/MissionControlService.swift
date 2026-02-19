@@ -36,7 +36,7 @@ class MissionControlService {
         return try await client.get(APIEndpoint.taskAgentAssignments(taskId))
     }
 
-    func assignTaskToAgents(taskId: Int, agentIds: [Int]) async throws -> TaskAgentAssignmentsResponse {
+    func assignTaskToAgents(taskId: Int, agentIds: [Int]) async throws -> [TaskAgentAssignment] {
         return try await client.post(APIEndpoint.taskAgentAssignments(taskId), parameters: ["agentIds": agentIds])
     }
 

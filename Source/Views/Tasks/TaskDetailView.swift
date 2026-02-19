@@ -49,6 +49,9 @@ struct TaskDetailView: View {
     @State private var agentAssignments: [TaskAgentAssignment] = []
     @State private var isLoadingAgents = false
     @State private var agentError: String? = nil
+    @State private var showAgentPicker = false
+    @State private var pendingAgentIds: Set<Int> = []
+    @State private var isSyncingAgents = false
 
     @StateObject private var usersViewModel = UsersViewModel()
     @Environment(\.colorScheme) private var colorScheme
@@ -205,6 +208,9 @@ struct TaskDetailView: View {
             case .failure(let error):
                 commentsError = error.localizedDescription
             }
+        }
+        .sheet(isPresented: $showAgentPicker) {
+            agentPickerSheet
         }
         .onAppear {
             selectedStatus = taskState.status
@@ -665,7 +671,15 @@ struct TaskDetailView: View {
     private var agentSection: some View {
         LLCard(style: .standard) {
             VStack(alignment: .leading, spacing: LLSpacing.sm) {
-                detailHeader("Agents", icon: "person.3")
+                HStack {
+                    detailHeader("Agents", icon: "person.3")
+                    Spacer()
+                    Button("Assign") {
+                        prepareAgentPicker()
+                    }
+                    .font(LLTypography.bodySmall())
+                    .foregroundColor(LLColors.foreground.color(for: colorScheme))
+                }
 
                 if isLoadingAgents {
                     LLLoadingView("Loading agents...")
@@ -724,6 +738,67 @@ struct TaskDetailView: View {
 
                 if let agentError = agentError {
                     InlineErrorView(message: agentError)
+                }
+            }
+        }
+    }
+
+    private var agentPickerSheet: some View {
+        NavigationView {
+            VStack(spacing: LLSpacing.md) {
+                if availableAgents.isEmpty {
+                    LLEmptyState(
+                        icon: "person.3",
+                        title: "No agents available",
+                        message: "Create agents in Mission Control to assign them here."
+                    )
+                } else {
+                    ScrollView {
+                        VStack(spacing: LLSpacing.sm) {
+                            ForEach(availableAgents) { agent in
+                                Button {
+                                    togglePendingAgent(agent.id)
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(agent.displayName)
+                                                .bodyText()
+                                                .foregroundColor(LLColors.foreground.color(for: colorScheme))
+                                            Text(agent.role)
+                                                .bodySmall()
+                                                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                                        }
+                                        Spacer()
+                                        Image(systemName: pendingAgentIds.contains(agent.id) ? "checkmark.circle.fill" : "circle")
+                                            .foregroundColor(LLColors.primary.color(for: colorScheme))
+                                    }
+                                    .padding(.horizontal, LLSpacing.md)
+                                    .padding(.vertical, LLSpacing.sm)
+                                    .background(LLColors.card.color(for: colorScheme))
+                                    .cornerRadius(LLSpacing.radiusMD)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, LLSpacing.md)
+                    }
+                }
+
+                if let agentError = agentError {
+                    InlineErrorView(message: agentError)
+                        .padding(.horizontal, LLSpacing.md)
+                }
+
+                LLButton("Save Assignments", style: .primary, isLoading: isSyncingAgents, fullWidth: true) {
+                    Task { await saveAgentAssignments() }
+                }
+                .padding(.horizontal, LLSpacing.md)
+                .padding(.bottom, LLSpacing.md)
+            }
+            .navigationTitle("Assign Agents")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showAgentPicker = false }
                 }
             }
         }
@@ -882,6 +957,51 @@ struct TaskDetailView: View {
                 _ = try await MissionControlService.shared.assignTaskToAgents(taskId: taskState.id, agentIds: [agentId])
             }
             agentAssignments = try await MissionControlService.shared.getTaskAgentAssignments(taskId: taskState.id)
+        } catch {
+            agentError = error.localizedDescription
+        }
+    }
+
+    private func prepareAgentPicker() {
+        pendingAgentIds = Set(agentAssignments.map { $0.agentId })
+        showAgentPicker = true
+    }
+
+    private func togglePendingAgent(_ agentId: Int) {
+        if pendingAgentIds.contains(agentId) {
+            pendingAgentIds.remove(agentId)
+        } else {
+            pendingAgentIds.insert(agentId)
+        }
+    }
+
+    private func saveAgentAssignments() async {
+        guard !isSyncingAgents else { return }
+        isSyncingAgents = true
+        agentError = nil
+        defer { isSyncingAgents = false }
+
+        let current = Set(agentAssignments.map { $0.agentId })
+        let toAdd = pendingAgentIds.subtracting(current)
+        let toRemove = current.subtracting(pendingAgentIds)
+
+        do {
+            if !toAdd.isEmpty {
+                _ = try await MissionControlService.shared.assignTaskToAgents(
+                    taskId: taskState.id,
+                    agentIds: Array(toAdd)
+                )
+            }
+
+            for agentId in toRemove {
+                _ = try await MissionControlService.shared.unassignTaskFromAgent(
+                    taskId: taskState.id,
+                    agentId: agentId
+                )
+            }
+
+            agentAssignments = try await MissionControlService.shared.getTaskAgentAssignments(taskId: taskState.id)
+            showAgentPicker = false
         } catch {
             agentError = error.localizedDescription
         }

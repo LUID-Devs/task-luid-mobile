@@ -36,6 +36,24 @@ class OrganizationService {
         return response.data ?? []
     }
 
+    func getOrganizations() async throws -> [Organization] {
+        let response: SuccessResponse<[Organization]> = try await client.get(
+            APIEndpoint.organizations
+        )
+        return response.data ?? []
+    }
+
+    func switchWorkspace(organizationId: Int) async throws -> Organization {
+        let response: SwitchWorkspaceResponse = try await client.post(
+            APIEndpoint.organizationSwitch,
+            parameters: ["organizationId": organizationId]
+        )
+        guard let org = response.data?.activeOrganization else {
+            throw APIError.noData
+        }
+        return org
+    }
+
     func getInvites(organizationId: Int) async throws -> [OrganizationInvite] {
         let response: SuccessResponse<[OrganizationInvite]> = try await client.get(
             APIEndpoint.organizationInvites(organizationId)
@@ -170,4 +188,14 @@ private struct EmptyResponse: Codable {}
 private struct AuditLogResponse: Codable {
     let success: Bool?
     let data: [OrganizationAuditLog]?
+}
+
+private struct SwitchWorkspaceResponse: Codable {
+    let success: Bool?
+    let message: String?
+    let data: SwitchWorkspaceData?
+}
+
+private struct SwitchWorkspaceData: Codable {
+    let activeOrganization: Organization?
 }
