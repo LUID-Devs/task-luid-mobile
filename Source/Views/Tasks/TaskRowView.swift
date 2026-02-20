@@ -85,7 +85,7 @@ struct TaskRowView: View {
         if task.status == .completed {
             return LLColors.success.color(for: colorScheme)
         }
-        return LLColors.muted.color(for: colorScheme)
+        return LLColors.info.color(for: colorScheme)
     }
 
     private func formattedDueDate() -> String? {

@@ -73,7 +73,7 @@ struct MissionControlView: View {
             }
             .screenPadding()
         }
-        .background(LLColors.background.color(for: colorScheme))
+        .appBackground()
         .task {
             await viewModel.loadMissionControl()
         }

@@ -7,7 +7,6 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -17,6 +16,6 @@ struct RootView: View {
                 AuthenticationView()
             }
         }
-        .background(LLColors.background.color(for: colorScheme))
+        .appBackground()
     }
 }

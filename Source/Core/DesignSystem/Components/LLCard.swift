@@ -43,13 +43,16 @@ struct LLCard<Content: View>: View {
         let card = content
             .padding(cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(backgroundColor)
+            .background(
+                RoundedRectangle(cornerRadius: LLSpacing.radiusLG)
+                    .fill(backgroundColor)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: LLSpacing.radiusLG)
                     .stroke(borderColor, lineWidth: borderWidth)
             )
-            .cornerRadius(LLSpacing.radiusLG)
-            .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 4)
+            .clipShape(.rect(cornerRadius: LLSpacing.radiusLG))
+            .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 6)
 
         if let onTap = onTap {
             Button(action: onTap) { card }
@@ -94,10 +97,10 @@ struct LLCard<Content: View>: View {
     }
 
     private var shadowColor: Color {
-        style == .elevated ? Color.black.opacity(0.08) : .clear
+        style == .elevated ? Color.black.opacity(colorScheme == .dark ? 0.24 : 0.08) : .clear
     }
 
     private var shadowRadius: CGFloat {
-        style == .elevated ? 6 : 0
+        style == .elevated ? 10 : 0
     }
 }

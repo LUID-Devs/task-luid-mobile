@@ -45,13 +45,16 @@ struct LLBadge: View {
         }
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
-        .foregroundColor(foregroundColor)
-        .background(backgroundColor)
+        .foregroundStyle(foregroundColor)
+        .background(
+            RoundedRectangle(cornerRadius: LLSpacing.radiusSM)
+                .fill(backgroundColor)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: LLSpacing.radiusSM)
                 .stroke(borderColor, lineWidth: variant == .outline ? 1 : 0)
         )
-        .cornerRadius(LLSpacing.radiusSM)
+        .clipShape(.rect(cornerRadius: LLSpacing.radiusSM))
     }
 
     private var font: Font {

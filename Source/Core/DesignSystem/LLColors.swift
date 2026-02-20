@@ -55,61 +55,61 @@ extension Color {
 
 enum LLColors {
     static let primary = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.922, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.62, c: 0.16, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.7, c: 0.16, h: 255))
     )
 
     static let primaryForeground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.985, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.98, c: 0.02, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.14, c: 0.03, h: 255))
     )
 
     static let secondary = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.97, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.269, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.95, c: 0.02, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.25, c: 0.02, h: 255))
     )
 
     static let secondaryForeground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.985, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.18, c: 0.02, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.96, c: 0.01, h: 255))
     )
 
     static let accent = secondary
     static let accentForeground = secondaryForeground
 
     static let background = ColorSet(
-        light: Color(oklch: OKLCH(l: 1, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.145, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.985, c: 0.01, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.13, c: 0.01, h: 255))
     )
 
     static let foreground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.145, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.985, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.18, c: 0.01, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.96, c: 0.01, h: 255))
     )
 
     static let card = ColorSet(
-        light: Color(oklch: OKLCH(l: 1, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.995, c: 0.01, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.18, c: 0.01, h: 255))
     )
 
     static let cardForeground = foreground
 
     static let muted = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.97, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.269, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.93, c: 0.01, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.24, c: 0.01, h: 255))
     )
 
     static let mutedForeground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.556, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.708, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.5, c: 0.01, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.7, c: 0.01, h: 255))
     )
 
     static let popover = card
     static let popoverForeground = foreground
 
     static let destructive = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.55, c: 0.21, h: 25)),
-        dark: Color(oklch: OKLCH(l: 0.62, c: 0.22, h: 25))
+        light: Color(oklch: OKLCH(l: 0.58, c: 0.22, h: 25)),
+        dark: Color(oklch: OKLCH(l: 0.66, c: 0.22, h: 25))
     )
 
     static let destructiveForeground = ColorSet(
@@ -118,47 +118,47 @@ enum LLColors {
     )
 
     static let success = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.24, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.82, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.62, c: 0.17, h: 145)),
+        dark: Color(oklch: OKLCH(l: 0.7, c: 0.16, h: 145))
     )
 
     static let successForeground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.985, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.98, c: 0.01, h: 145)),
+        dark: Color(oklch: OKLCH(l: 0.14, c: 0.02, h: 145))
     )
 
     static let warning = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.32, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.7, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.75, c: 0.16, h: 80)),
+        dark: Color(oklch: OKLCH(l: 0.78, c: 0.16, h: 80))
     )
 
     static let warningForeground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.985, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.25, c: 0.02, h: 80)),
+        dark: Color(oklch: OKLCH(l: 0.2, c: 0.02, h: 80))
     )
 
     static let info = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.4, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.6, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.62, c: 0.14, h: 220)),
+        dark: Color(oklch: OKLCH(l: 0.7, c: 0.12, h: 220))
     )
 
     static let infoForeground = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.985, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.205, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.98, c: 0.01, h: 220)),
+        dark: Color(oklch: OKLCH(l: 0.16, c: 0.02, h: 220))
     )
 
     static let border = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.922, c: 0, h: 0)),
+        light: Color(oklch: OKLCH(l: 0.9, c: 0.01, h: 255)),
         dark: Color(white: 1.0, opacity: 0.1)
     )
 
     static let input = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.922, c: 0, h: 0)),
-        dark: Color(white: 1.0, opacity: 0.15)
+        light: Color(oklch: OKLCH(l: 0.88, c: 0.01, h: 255)),
+        dark: Color(white: 1.0, opacity: 0.12)
     )
 
     static let ring = ColorSet(
-        light: Color(oklch: OKLCH(l: 0.708, c: 0, h: 0)),
-        dark: Color(oklch: OKLCH(l: 0.556, c: 0, h: 0))
+        light: Color(oklch: OKLCH(l: 0.62, c: 0.1, h: 255)),
+        dark: Color(oklch: OKLCH(l: 0.55, c: 0.12, h: 255))
     )
 }

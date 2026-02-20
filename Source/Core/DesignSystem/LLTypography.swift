@@ -6,13 +6,13 @@
 import SwiftUI
 
 enum LLTypography {
-    static func h1() -> Font { .system(size: 34, weight: .bold) }
-    static func h2() -> Font { .system(size: 28, weight: .bold) }
-    static func h3() -> Font { .system(size: 24, weight: .semibold) }
-    static func h4() -> Font { .system(size: 20, weight: .semibold) }
-    static func body() -> Font { .system(size: 16, weight: .regular) }
-    static func bodySmall() -> Font { .system(size: 14, weight: .regular) }
-    static func caption() -> Font { .system(size: 12, weight: .regular) }
+    static func h1() -> Font { .system(size: 36, weight: .bold, design: .rounded) }
+    static func h2() -> Font { .system(size: 30, weight: .bold, design: .rounded) }
+    static func h3() -> Font { .system(size: 24, weight: .semibold, design: .rounded) }
+    static func h4() -> Font { .system(size: 20, weight: .semibold, design: .rounded) }
+    static func body() -> Font { .system(size: 16, weight: .regular, design: .default) }
+    static func bodySmall() -> Font { .system(size: 14, weight: .regular, design: .default) }
+    static func caption() -> Font { .system(size: 12, weight: .regular, design: .default) }
 }
 
 extension Text {

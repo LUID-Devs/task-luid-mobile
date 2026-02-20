@@ -17,9 +17,10 @@ struct LLLoadingView: View {
     var body: some View {
         VStack(spacing: LLSpacing.sm) {
             ProgressView()
+                .tint(LLColors.primary.color(for: colorScheme))
             Text(title)
                 .font(LLTypography.bodySmall())
-                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                .foregroundStyle(LLColors.mutedForeground.color(for: colorScheme))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(LLSpacing.lg)

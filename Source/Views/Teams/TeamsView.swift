@@ -62,7 +62,7 @@ struct TeamsView: View {
             }
             .screenPadding()
         }
-        .background(LLColors.background.color(for: colorScheme))
+        .appBackground()
     }
 
     private var peopleView: some View {

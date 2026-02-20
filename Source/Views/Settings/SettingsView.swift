@@ -61,7 +61,7 @@ struct SettingsView: View {
             }
             .screenPadding()
         }
-        .background(LLColors.background.color(for: colorScheme))
+        .appBackground()
         .task {
             await loadInitialData()
         }

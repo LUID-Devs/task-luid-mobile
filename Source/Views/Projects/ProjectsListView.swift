@@ -75,7 +75,7 @@ struct ProjectsListView: View {
                 .screenPadding()
             }
         }
-        .background(LLColors.background.color(for: colorScheme))
+        .appBackground()
         .sheet(isPresented: $showCreate) {
             ProjectCreateView { name, description in
                 let project = await viewModel.createProject(name: name, description: description)

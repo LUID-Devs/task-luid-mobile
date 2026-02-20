@@ -24,21 +24,29 @@ struct LLTextField: View {
                     .textFieldStyle(PlainTextFieldStyle())
                     .padding(.horizontal, LLSpacing.md)
                     .frame(height: LLSpacing.buttonHeightMD)
-                    .background(LLColors.card.color(for: colorScheme))
+                    .background(
+                        RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
+                            .fill(LLColors.card.color(for: colorScheme))
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
                             .stroke(LLColors.input.color(for: colorScheme), lineWidth: 1)
                     )
+                    .clipShape(.rect(cornerRadius: LLSpacing.radiusMD))
             } else {
                 TextField(placeholder, text: $text)
                     .textFieldStyle(PlainTextFieldStyle())
                     .padding(.horizontal, LLSpacing.md)
                     .frame(height: LLSpacing.buttonHeightMD)
-                    .background(LLColors.card.color(for: colorScheme))
+                    .background(
+                        RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
+                            .fill(LLColors.card.color(for: colorScheme))
+                    )
                     .overlay(
                         RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
                             .stroke(LLColors.input.color(for: colorScheme), lineWidth: 1)
                     )
+                    .clipShape(.rect(cornerRadius: LLSpacing.radiusMD))
             }
         }
     }

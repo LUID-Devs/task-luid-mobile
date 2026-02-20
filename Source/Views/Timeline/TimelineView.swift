@@ -33,7 +33,7 @@ struct TimelineView: View {
             }
             .screenPadding()
         }
-        .background(LLColors.background.color(for: colorScheme))
+        .appBackground()
         .task(id: authViewModel.user?.userId) {
             if let userId = authViewModel.user?.userId {
                 await viewModel.loadTimeline(userId: userId)

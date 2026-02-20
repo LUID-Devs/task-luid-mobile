@@ -66,18 +66,22 @@ struct LLButton: View {
                         .font(LLTypography.body())
                 }
             }
-            .foregroundColor(foregroundColor)
+            .foregroundStyle(foregroundColor)
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .frame(height: height)
             .padding(.horizontal, LLSpacing.lg)
-            .background(backgroundColor)
+            .background(
+                RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
+                    .fill(backgroundColor)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
                     .stroke(borderColor, lineWidth: borderWidth)
             )
-            .cornerRadius(LLSpacing.radiusMD)
+            .clipShape(.rect(cornerRadius: LLSpacing.radiusMD))
         }
         .disabled(isDisabled || isLoading)
+        .opacity(isDisabled || isLoading ? 0.6 : 1)
     }
 
     private var height: CGFloat {

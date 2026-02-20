@@ -70,7 +70,7 @@ struct UsersView: View {
             }
             .screenPadding()
         }
-        .background(LLColors.background.color(for: colorScheme))
+        .appBackground()
         .task(id: organizationId) {
             guard let organizationId else { return }
             await viewModel.loadMembers(organizationId: organizationId)

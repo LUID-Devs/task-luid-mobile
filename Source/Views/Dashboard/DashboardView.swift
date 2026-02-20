@@ -77,11 +77,11 @@ struct DashboardView: View {
             }
             .padding(LLSpacing.lg)
         }
-        .cornerRadius(LLSpacing.radiusLG)
         .overlay(
             RoundedRectangle(cornerRadius: LLSpacing.radiusLG)
                 .stroke(LLColors.border.color(for: colorScheme), lineWidth: 1)
         )
+        .clipShape(.rect(cornerRadius: LLSpacing.radiusLG))
     }
 
     private var planCard: some View {
@@ -289,14 +289,6 @@ struct DashboardView: View {
     }
 
     private var dashboardBackground: some View {
-        LinearGradient(
-            colors: [
-                LLColors.background.color(for: colorScheme),
-                LLColors.muted.color(for: colorScheme)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        LLBackgroundView()
     }
 }

@@ -332,15 +332,7 @@ struct TasksListView: View {
     }
 
     private var tasksBackground: some View {
-        LinearGradient(
-            colors: [
-                LLColors.background.color(for: colorScheme),
-                LLColors.muted.color(for: colorScheme)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        LLBackgroundView()
     }
 
     private func isOverdue(_ task: TaskItem) -> Bool {

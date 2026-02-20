@@ -14,18 +14,23 @@ struct SearchBarView: View {
     var body: some View {
         HStack(spacing: LLSpacing.sm) {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                .foregroundStyle(LLColors.mutedForeground.color(for: colorScheme))
             TextField(placeholder, text: $text)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(LLTypography.body())
-                .foregroundColor(LLColors.foreground.color(for: colorScheme))
+                .foregroundStyle(LLColors.foreground.color(for: colorScheme))
+                .submitLabel(.search)
         }
         .padding(.horizontal, LLSpacing.md)
         .frame(height: LLSpacing.buttonHeightMD)
-        .background(LLColors.card.color(for: colorScheme))
+        .background(
+            RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
+                .fill(LLColors.card.color(for: colorScheme))
+        )
         .overlay(
             RoundedRectangle(cornerRadius: LLSpacing.radiusMD)
                 .stroke(LLColors.border.color(for: colorScheme), lineWidth: 1)
         )
+        .clipShape(.rect(cornerRadius: LLSpacing.radiusMD))
     }
 }

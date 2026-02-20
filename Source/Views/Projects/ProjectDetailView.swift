@@ -111,7 +111,7 @@ struct ProjectDetailView: View {
                     }
                     .screenPadding()
                 }
-                .background(LLColors.background.color(for: colorScheme))
+                .appBackground()
             }
         }
         .navigationTitle(project.name)

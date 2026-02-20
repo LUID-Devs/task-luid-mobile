@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 import PhotosUI
 import UniformTypeIdentifiers
 
@@ -905,9 +906,15 @@ struct TaskDetailView: View {
                 commentsError = "Unable to read selected photo."
                 return
             }
+            let jpegData: Data
+            if let image = UIImage(data: data), let converted = image.jpegData(compressionQuality: 0.9) {
+                jpegData = converted
+            } else {
+                jpegData = data
+            }
             let filename = "comment-\(UUID().uuidString).jpg"
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-            try data.write(to: tempURL)
+            try jpegData.write(to: tempURL)
             let uploadedUrl = try await CommentService.shared.uploadCommentImage(fileURL: tempURL)
             commentImageUrl = uploadedUrl
         } catch {

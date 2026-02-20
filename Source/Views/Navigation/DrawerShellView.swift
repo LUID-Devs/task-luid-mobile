@@ -74,7 +74,7 @@ struct DrawerShellView: View {
                         }
                 }
                 .tint(LLColors.primary.color(for: colorScheme))
-                .background(LLColors.background.color(for: colorScheme))
+                .appBackground()
 
                 if isMenuOpen {
                     Color.black.opacity(0.2)

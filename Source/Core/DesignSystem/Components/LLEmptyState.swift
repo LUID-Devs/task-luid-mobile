@@ -41,15 +41,15 @@ struct LLEmptyState: View {
         VStack(spacing: LLSpacing.md) {
             Image(systemName: icon)
                 .font(style == .feature ? .system(size: 48) : .system(size: 32))
-                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                .foregroundStyle(LLColors.mutedForeground.color(for: colorScheme))
 
             Text(title)
                 .font(style == .feature ? LLTypography.h3() : LLTypography.h4())
-                .foregroundColor(LLColors.foreground.color(for: colorScheme))
+                .foregroundStyle(LLColors.foreground.color(for: colorScheme))
 
             Text(message)
                 .font(LLTypography.bodySmall())
-                .foregroundColor(LLColors.mutedForeground.color(for: colorScheme))
+                .foregroundStyle(LLColors.mutedForeground.color(for: colorScheme))
                 .multilineTextAlignment(.center)
 
             if let actionTitle = actionTitle, let action = action {
@@ -58,5 +58,14 @@ struct LLEmptyState: View {
         }
         .padding(LLSpacing.lg)
         .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: LLSpacing.radiusLG)
+                .fill(LLColors.card.color(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: LLSpacing.radiusLG)
+                .stroke(LLColors.border.color(for: colorScheme), lineWidth: 1)
+        )
+        .clipShape(.rect(cornerRadius: LLSpacing.radiusLG))
     }
 }

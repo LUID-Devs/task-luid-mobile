@@ -34,16 +34,20 @@ struct AuthenticationView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.vertical, LLSpacing.sm)
+                .tint(LLColors.primary.color(for: colorScheme))
 
-                if mode == .login {
-                    LoginView()
-                } else {
-                    RegisterView()
+                LLCard(style: .elevated) {
+                    if mode == .login {
+                        LoginView()
+                    } else {
+                        RegisterView()
+                    }
                 }
 
                 Spacer()
             }
             .screenPadding()
+            .appBackground()
             .sheet(item: $authViewModel.challenge) { _ in
                 ChallengeView()
             }
